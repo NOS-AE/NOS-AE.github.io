@@ -12,7 +12,6 @@
 
 - type: rss
   icon: "fas fa-rss"
-  noblank: true
 # Uncomment and complete the url below to enable more contact options
 #
 # - type: mastodon
@@ -23,10 +22,9 @@
 #   icon: 'fab fa-linkedin'   # icons powered by <https://fontawesome.com/>
 #   url:  ''                  # Fill with your Linkedin homepage
 #
-# - type: stack-overflow
-#   icon: 'fab fa-stack-overflow'
-#   url:  ''                  # Fill with your stackoverflow homepage
-#
+- type: stack-overflow
+  icon: 'fab fa-stack-overflow'
+  url:  'https://stackoverflow.com/users/11136727/nosae'                  # Fill with your stackoverflow homepage
 # - type: bluesky
 #   icon: 'fa-brands fa-bluesky'
 #   url: ''                   # Fill with your Bluesky profile link
