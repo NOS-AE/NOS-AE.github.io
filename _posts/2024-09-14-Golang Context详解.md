@@ -25,25 +25,23 @@ categories: [go stdlib]
 
 ```go
 func childSvc1(upstream <-chan) {
-  downstream := make(chan struct{}, 0)
-  defer close(downstream)
-  go childSvc1_1(downstream)
-  go childSvr1_2(downstream)
+    downstream := make(chan struct{}, 0)
+    defer close(downstream)
+    go childSvc1_1(downstream)
+    go childSvr1_2(downstream)
   
-  for {
-    select {
-      case <-upstream:
-      	close(downstream)
-      	return
-    	default:
-      	// 处理业务...
-      
-        if (...) {
-					// 因为某些原因需要取消下游服务
-          close(downstream)
+    for {
+        select {
+            case <-upstream:
+                close(downstream)
+                return
+            default:
+                // 处理业务...
+
+                // 因为某些原因需要取消下游服务
+                close(downstream)
         }
     }
-  }
 }
 ```
 
@@ -61,24 +59,22 @@ func childSvc1(upstream <-chan) {
 import "context"
 
 func childSvc1(ctx context.Context) {
-  cancel, ctx := context.WithCancel(ctx) // 创建子Context
-  defer cancel()
-  go childSvc1_1(ctx)
-  go childSvr1_2(ctx)
-  
-  for {
-    select {
-      case ctx.Done():
-      	return
-    	default:
-      	// 处理业务...
+    cancel, ctx := context.WithCancel(ctx) // 创建子Context
+    defer cancel()
+    go childSvc1_1(ctx)
+    go childSvr1_2(ctx)
 
-        if (...) {
-					// 因为某些原因需要取消下游服务
-          cancel()
+    for {
+        select {
+            case ctx.Done():
+            	return
+            default:
+                // 处理业务...
+
+                // 因为某些原因需要取消下游服务
+                cancel()
         }
     }
-  }
 }
 ```
 
@@ -98,10 +94,8 @@ func childSvc1(ctx context.Context) {
     	default:
       	// 处理业务...
 
-        if (...) {
-					// 因为某些原因需要取消下游服务
-          cancel()
-        }
+				// 因为某些原因需要取消下游服务
+				cancel()
     }
   }
 }
@@ -117,19 +111,19 @@ func childSvc1(ctx context.Context) {
 
 ```go
 type Context interface {
-  // 返回超时时间点
-	Deadline() (deadline time.Time, ok bool)
-  
-  // 返回chan，读这个chan会阻塞，直到Context被取消
-  Done() <-chan struct{}
-  
-  // 只有两种可能的错误值：
-  // Canceled：被取消
-  // DeadlineExceeded：超时
-	Err() error
-  
-  // 取出key对应的value，对应数据传递功能
-	Value(key any) any
+    // 返回超时时间点
+    Deadline() (deadline time.Time, ok bool)
+
+    // 返回chan，读这个chan会阻塞，直到Context被取消
+    Done() <-chan struct{}
+
+    // 只有两种可能的错误值：
+    // Canceled：被取消
+    // DeadlineExceeded：超时
+    Err() error
+
+    // 取出key对应的value，对应数据传递功能
+    Value(key any) any
 }
 ```
 
@@ -236,14 +230,14 @@ func withCancel(parent Context) *cancelCtx {
 func (c *cancelCtx) propagateCancel(parent Context, child canceler) {
 	c.Context = parent
   
-  ...
+	...
   
 	if p, ok := parentCancelCtx(parent); ok {
 		// parent is a *cancelCtx, or derives from one.
     p.mu.Lock()
     
     ...
-    
+
 		p.children[child] = struct{}{}
     p.mu.Unlock()
 		return
@@ -282,10 +276,10 @@ func WithCancel(parent Context) (ctx Context, cancel CancelFunc) {
 // removeFromParent is true, removes c from its parent's children.
 // cancel sets c.cause to cause if this is the first time c is canceled.
 func (c *cancelCtx) cancel(removeFromParent bool, err, cause error) {
-  ...
-  
-  c.mu.Lock()
-  ...
+    ...
+
+    c.mu.Lock()
+    ...
   
 	d, _ := c.done.Load().(chan struct{})
 	if d == nil {
@@ -338,14 +332,14 @@ type timerCtx struct {
 
 ```go
 func WithDeadlineCause(parent Context, d time.Time, cause error) (Context, CancelFunc) {
-  ...
+    ...
   
 	c := &timerCtx{
 		deadline: d,
 	}
 	c.cancelCtx.propagateCancel(parent, c)
 	
-  ...
+    ...
   
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -366,10 +360,10 @@ func WithDeadlineCause(parent Context, d time.Time, cause error) (Context, Cance
 ```go
 func (c *timerCtx) cancel(removeFromParent bool, err, cause error) {
 	c.cancelCtx.cancel(false, err, cause)
-  ...
+    ...
   
 	c.timer.Stop()
-  ...
+    ...
 }
 ```
 
