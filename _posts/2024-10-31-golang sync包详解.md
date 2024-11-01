@@ -59,9 +59,8 @@ const (
 )
 
 type Mutex struct {
-    // 低三位分别对应上述三个状态，高位记录等待队列的线程数
-	state int32
-	sema  uint32
+	state int32 // 低三位分别对应上述三个状态，高位记录等待队列的线程数
+	sema  uint32 // 给底层同步原语使用的信号量
 }
 ```
 
@@ -222,6 +221,118 @@ func (m *Mutex) unlockSlow(new int32) {
 	}
 }
 ```
+
+## sync.RWMutex
+
+`sync.RWMutex`综合了写优先和非写优先锁：
+
+1. 避免writer饿死：当writer来尝试获取锁的时候，在其后面来的reader都得阻塞。写优先核心是通过`readerCount`这个原子变量实现的
+2. 避免reader饿死：当writer释放锁时，在等待的reader马上获取到锁，即使当前还有其他的writer在等待。然后writer才能去竞争锁，继而阻塞后来的reader
+
+RWMutex结构体：
+
+```go
+type RWMutex struct {
+	w           Mutex        // writer互斥
+	writerSem   uint32       // 写阻塞队列
+	readerSem   uint32       // 读阻塞队列
+	readerCount atomic.Int32 // 所有reader的数量，负数表示有writer在等，优先让writer先获取锁
+	readerWait  atomic.Int32 // 在等待写锁释放的reader数量
+}
+```
+
+Lock方法：
+
+```go
+func (rw *RWMutex) Lock() {
+	...
+	// 与其他writer互斥
+	rw.w.Lock()
+	// 通知其他reader现在有writer，禁止新的reader获取锁
+	r := rw.readerCount.Add(-rwmutexMaxReaders) + rwmutexMaxReaders
+	// 阻塞等待当前已经获取锁的读者完成
+	if r != 0 && rw.readerWait.Add(r) != 0 {
+		runtime_SemacquireRWMutex(&rw.writerSem, false, 0)
+	}
+    ...
+}
+```
+
+Unlock方法：
+
+```go
+func (rw *RWMutex) Unlock() {
+	...
+	// 通知其他reader现在没有writer
+	r := rw.readerCount.Add(rwmutexMaxReaders)
+	if r >= rwmutexMaxReaders {
+		race.Enable()
+		fatal("sync: Unlock of unlocked RWMutex")
+	}
+	// 唤醒所有reader
+	for i := 0; i < int(r); i++ {
+		runtime_Semrelease(&rw.readerSem, false, 0)
+	}
+    // 唤醒其他的writer
+	rw.w.Unlock()
+    ...
+}
+```
+
+RLock方法：
+
+```go
+func (rw *RWMutex) RLock() {
+	...
+    // 加入一个reader
+	if rw.readerCount.Add(1) < 0 {
+        // 现在有writer，reader直接阻塞不去与writer竞争
+		runtime_SemacquireRWMutexR(&rw.readerSem, false, 0)
+	}
+    ...
+}
+```
+
+RUnlock方法：
+
+```go
+func (rw *RWMutex) RUnlock() {
+	...
+    // 减少一个reader
+	if r := rw.readerCount.Add(-1); r < 0 {
+        // readerCount<0，说明有writer在等待，要进一步唤醒writer
+		rw.rUnlockSlow(r)
+	}
+	...
+}
+```
+
+rUnlockSlow方法：
+
+```go
+func (rw *RWMutex) rUnlockSlow(r int32) {
+	...
+    // 最后一个释放锁的reader负责唤醒writer
+	if rw.readerWait.Add(-1) == 0 {
+		runtime_Semrelease(&rw.writerSem, false, 1)
+	}
+}
+```
+
+## sync.Map
+
+`sync.Map`是线程安全版本的原生`map`
+
+```go
+type Map struct {
+	mu Mutex
+	read atomic.Pointer[readOnly]
+	dirty map[any]*entry
+	misses int
+}
+```
+
+
 
 ## 参考
 
