@@ -928,6 +928,119 @@ func gcStart(trigger gcTrigger) {
 
 其实我们也能很容易实现自己的对象缓存池，但是sync.Pool可以精确地控制在GC开始时回收缓存，而我们并不知道GC什么时候开始，需要更加复杂的手段去实现。
 
+但是Pool的使用也有很多需要注意的地方，参考[这篇博客](https://www.akshaydeo.com/blog/2017/12/23/How-did-I-improve-latency-by-700-percent-using-syncPool/)，看一个具体场景：服务端接收请求，并且创建结构体去存储请求的数据，为了大量请求创建销毁结构体，使用Pool进行缓存。然后执行业务：
+
+1. 异步地发送请求数据到kafka
+2. 异步地调用其他服务，并且调用的参数用的是请求的数据
+
+在该处理请求的handler返回前将对象归还到Pool中。
+
+![img2](https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/go_pooling_image_2.png)
+
+但此时就引发了问题：业务逻辑是异步执行的，当handler函数返回后，业务逻辑还在异步地执行，可能还会去读之前从Pool中拿出来的请求体。如果此时有其他协程复用了这个请求体并且改变了里面的数据，那么就出问题了。
+
+一个可能的解决方案是给对象加上一个引用计数，当引用变成0后才将其归还到Pool中。思路看上去没问题，具体实现可以参考那篇博客中在最后给出的代码。下面给出我的实现（未经测试）。
+
+方法命名上我使用的是WaitGroup那样的命名：`Add`和`Done`，具体见注释。并且规范了缓存池的使用：
+
+1. RefPool用于一条业务处理逻辑，多协程访问同一个缓存池对象时，通过增加引用计数，当该业务线所有协程都完成时，才将对象放回缓存池中，以免其他业务线同时修改该对象。RefPool的使用方法与WaitGroup有相似之处：
+
+    ```go
+    // 常规使用场景
+    x := pool.Get()
+    defer pool.Done(x) // 主协程使用完毕
+    for ... {
+        pool.Add(x)
+        go func() {
+            defer pool.Done(x) // 子协程使用完毕
+        }
+    }
+    
+    // 其他场景：从缓存池拿出对象后不打算再放入缓存池中
+    x := pool.Get()
+    ...
+    pool.Untrack(x)
+    ```
+
+2. 不能Done、Add、Untrack一个不是由Get获取的对象
+
+以下是具体实现：
+
+```go
+type RefPool struct {
+	pool    sync.Pool
+	counter sync.Map
+	f       func() any
+}
+
+func NewRefPool(f func() any) *RefPool {
+	p := &RefPool{
+		pool: sync.Pool{},
+	}
+	p.pool.New = f
+	return p
+}
+
+// 从对象池获取一个对象，引用数初始化为1
+func (p *RefPool) Get() any {
+	x := p.pool.Get()
+	if x == nil {
+		return nil
+	}
+	_, ok := p.counter.Load(x)
+	// sanity check
+	if ok {
+		panic("inconsistency")
+	}
+	c := &atomic.Int32{}
+	c.Add(1)
+	p.counter.Store(x, c)
+
+	return x
+}
+
+// 增加对象的引用数
+func (p *RefPool) Add(x any) {
+	c, ok := p.counter.Load(x)
+	if !ok {
+		panic("untracked object")
+	}
+	c.(*atomic.Int32).Add(1)
+}
+
+// 对象的引用数-1，如果引用数减为0，则将对象放回对象池
+func (p *RefPool) Done(x any) {
+	c, ok := p.counter.Load(x)
+	if !ok {
+		panic("untracked object")
+	}
+	if v := c.(*atomic.Int32).Add(-1); v == 0 {
+		if deleted := p.counter.CompareAndDelete(x, c); !deleted {
+			// sanity check
+			panic("inconsistency")
+		}
+		p.pool.Put(x)
+	}
+}
+
+// 不再跟踪该对象，将不再进入缓存池，同时也不再维护引用计数
+func (p *RefPool) Untrack(x any) {
+	c, ok := p.counter.Load(x)
+	if !ok {
+		panic("untracked object")
+	}
+	if deleted := p.counter.CompareAndDelete(x, c); !deleted {
+		// sanity check
+		panic("inconsistency")
+	}
+}
+```
+
+可改进之处：
+
+1. 可以Add、Done、Untrack一个未经Get的对象，使用起来可以更加灵活
+2. 更进一步地，可以将对象封装为Ref接口，增加Val、Inc、Dec、Untrack方法，也就是将计数的维护委托给对象自身，省去维护以及并发访问RefPool.counter，最终RefPool只保留Get方法用于获取新对象
+
 ## 参考
 
 [Recursive locking in Go](https://stackoverflow.com/questions/14670979/recursive-locking-in-go)
@@ -939,3 +1052,5 @@ func gcStart(trigger gcTrigger) {
 [深度解密 Go 语言之 sync.map](https://www.cnblogs.com/qcrao-2018/p/12833787.html)
 
 [How to understand acquire and release semantics?](https://stackoverflow.com/questions/24565540/how-to-understand-acquire-and-release-semantics)
+
+[How did I improve latency by 700% using sync.Pool](https://www.akshaydeo.com/blog/2017/12/23/How-did-I-improve-latency-by-700-percent-using-syncPool/)
