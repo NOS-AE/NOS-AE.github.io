@@ -321,18 +321,612 @@ func (rw *RWMutex) rUnlockSlow(r int32) {
 
 ## sync.Map
 
-`sync.Map`是线程安全版本的原生`map`
+`sync.Map`是线程安全版本的原生`map`。`sync.Map`通过空间换时间的方式，使用 `read` 和 `dirty` 两个 `map` 来进行读写分离，降低锁时间来提高效率。一下两种使用场景下，`sync.Map`并发效率往往比`map`+`RWMutex`更高
+
+1. append-only类型的cache：只写一次，读多次
+1. 多个协程读写key的集合不重叠，比如协程1经常读写k1,k2，协程2读写k3,k4
+
+结构体定义如下：
 
 ```go
+// 当key对应的值为expunged，说明这个key只在read中存在，在dirty中不存在
+var expunged = new(any)
+
+type entry struct {
+	p atomic.Pointer[any]
+}
+
+
 type Map struct {
 	mu Mutex
+    // dirty的子集（dirty为空除外），即除了expunged以外，dirty中存在的key，read可能没有
 	read atomic.Pointer[readOnly]
+    // 存了所有的key，当未命中read数次，就会将整个dirty同步到read中
 	dirty map[any]*entry
 	misses int
 }
 ```
 
+我们首先跟原生map对齐，先关注Store、Load、Delete三个方法
 
+Store方法是用Swap方法实现的，直接看Swap，存入value，返回旧值（如果有的话，用loaded来指示）：
+
+```go
+func (m *Map) Swap(key, value any) (previous any, loaded bool) {
+	read := m.loadReadOnly()
+	if e, ok := read.m[key]; ok {
+        // 命中read，尝试trySwap设置新值
+        // 如果trySwap返回false表明这个key已经被删了，得将key加入dirty
+		if v, ok := e.trySwap(&value); ok {
+			if v == nil {
+				return nil, false
+			}
+			return *v, true
+		}
+	}
+
+    // 互斥
+	m.mu.Lock()
+	read = m.loadReadOnly()
+	if e, ok := read.m[key]; ok {
+        // 命中read，并且为expunged的话，说明这个key之前被删掉了，要把key添加到dirty中
+		if e.unexpungeLocked() {
+			m.dirty[key] = e
+		}
+        // 设置新value
+		if v := e.swapLocked(&value); v != nil {
+			loaded = true
+			previous = *v
+		}
+	} else if e, ok := m.dirty[key]; ok {
+        // 未命中read，但dirty有这个key，说明是上一次dirty到read之后才设进来的key
+        // 直接设新value即可
+		if v := e.swapLocked(&value); v != nil {
+			loaded = true
+			previous = *v
+		}
+	} else {
+        // 未命中read，并且dirty也没有这个key，说明是新来的key
+		if !read.amended {
+			m.dirtyLocked()
+			m.read.Store(&readOnly{m: read.m, amended: true})
+		}
+        // 将key添加到dirty中
+		m.dirty[key] = newEntry(value)
+	}
+	m.mu.Unlock()
+	return previous, loaded
+}
+
+
+func (e *entry) trySwap(i *any) (*any, bool) {
+	for {
+        // 如果entry的value不存在，返回
+		p := e.p.Load()
+		if p == expunged {
+			return nil, false
+		}
+        // CAS设置entry的value
+		if e.p.CompareAndSwap(p, i) {
+			return p, true
+		}
+	}
+}
+
+// 初始化dirty为m.read的复制，除了值为nil的key
+func (m *Map) dirtyLocked() {
+	if m.dirty != nil {
+		return
+	}
+
+	read := m.loadReadOnly()
+	m.dirty = make(map[any]*entry, len(read.m))
+	for k, e := range read.m {
+		if !e.tryExpungeLocked() {
+			m.dirty[k] = e
+		}
+	}
+}
+
+// 将值为nil的key设置为expunged
+func (e *entry) tryExpungeLocked() (isExpunged bool) {
+	p := e.p.Load()
+	for p == nil {
+		if e.p.CompareAndSwap(nil, expunged) {
+			return true
+		}
+		p = e.p.Load()
+	}
+	return p == expunged
+}
+```
+
+Load方法：
+
+```go
+func (m *Map) Load(key any) (value any, ok bool) {
+	read := m.loadReadOnly()
+	e, ok := read.m[key]
+	if !ok && read.amended {
+		m.mu.Lock()
+		read = m.loadReadOnly()
+		e, ok = read.m[key]
+		if !ok && read.amended {
+            // 未命中read，直接读dirty，并且视为miss
+			e, ok = m.dirty[key]
+			m.missLocked()
+		}
+		m.mu.Unlock()
+	}
+	if !ok {
+		return nil, false
+	}
+	return e.load()
+}
+
+func (m *Map) missLocked() {
+	m.misses++
+	if m.misses < len(m.dirty) {
+		return
+	}
+    // 当read miss次数达到dirty的长度，直接将其整个同步到read中，提高并发读效率
+	m.read.Store(&readOnly{m: m.dirty})
+	m.dirty = nil
+	m.misses = 0
+}
+```
+
+Delete方法直接调用的是LoadAndDelete：
+
+```go
+func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
+	read := m.loadReadOnly()
+	e, ok := read.m[key]
+	if !ok && read.amended {
+		m.mu.Lock()
+		read = m.loadReadOnly()
+		e, ok = read.m[key]
+		if !ok && read.amended {
+            // 未命中read，直接删除dirty中的key
+			e, ok = m.dirty[key]
+			delete(m.dirty, key)
+			m.missLocked()
+		}
+		m.mu.Unlock()
+	}
+	if ok {
+        // 将value置空
+		return e.delete()
+	}
+	return nil, false
+}
+```
+
+综上，可以总结出以下几种常见情况：
+
+1. 当key命中read的时候，直接用CAS/Load原子操作完成对value的读、写、删。**其中删除需要对value置空而不是从map中删除key是为了将删转换为写操作，以便用CAS完成，属于空间换时间的做法**
+2. 当读key未命中read数次，将dirty同步到read，dirty置空，等下次写key未命中的时候重新初始化dirty
+3. 当写key未命中read（expunged也属于未命中），说明key被删除了，需要往dirty里写入
+
+### 支持泛型的sync.Map
+
+官方提供的sync.Map并不支持泛型，所以可以自己封装一下：
+
+```go
+type SyncMap[K comparable, V any] struct {
+	m *sync.Map
+}
+
+func NewSyncMap[K comparable, V any]() SyncMap[K, V] {
+	return SyncMap[K, V]{
+		m: &sync.Map{},
+	}
+}
+
+func (m SyncMap[K, V]) Store(key K, value V) {
+	m.m.Store(key, value)
+}
+
+func (m SyncMap[K, V]) Load(key K) (value V, ok bool) {
+	v, ok := m.m.Load(key)
+	if !ok || v == nil {
+		return
+	}
+	return v.(V), true
+}
+
+func (m SyncMap[K, V]) Delete(key K) {
+	m.m.Delete(key)
+}
+
+func (m SyncMap[K, V]) Range(f func(K, V) bool) {
+	m.m.Range(func(k, v any) bool {
+		if k == nil && v == nil {
+			return f(*new(K), *new(V))
+		} else if k == nil {
+			return f(*new(K), v.(V))
+		} else if v == nil {
+			return f(k.(K), *new(V))
+		}
+		return f(k.(K), v.(V))
+	})
+}
+
+func (m SyncMap[K, V]) LoadAndDelete(key K) (value V, loaded bool) {
+	v, loaded := m.m.LoadAndDelete(key)
+	if !loaded || v == nil {
+		return
+	}
+	return v.(V), true
+}
+
+func (m SyncMap[K, V]) LoadOrStore(key K, value V) (actual V, loaded bool) {
+	v, loaded := m.m.LoadOrStore(key, value)
+	if v == nil {
+		return
+	}
+	return v.(V), loaded
+}
+
+func (m SyncMap[K, V]) CompareAndSwap(key K, old, new V) bool {
+	return m.m.CompareAndSwap(key, old, new)
+}
+
+func (m SyncMap[K, V]) CompareAndDelete(key K, old V) (deleted bool) {
+	return m.m.CompareAndDelete(key, old)
+}
+```
+
+## sync.WaitGroup
+
+sync.WaitGroup也是非常常见的同步工具，有两种常见用法：
+
+1. 一个协程用于等待一组协程全部执行完成
+
+    ```go
+    for ... {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+        }
+    }
+    wg.Wait()
+    ```
+
+2. 多个协程等待一个协程执行完成，比如在singleflight的实现里就用到了
+
+    ```go
+    wg.Add(1)
+    for ... {
+        go func() {
+            wg.Wait
+        }
+    }
+    wg.Done()
+    ```
+
+结构体定义：
+
+```go
+type WaitGroup struct {
+	noCopy noCopy
+
+    // 高32位是计数器，低32位是阻塞队列大小
+	state atomic.Uint64
+    // 阻塞队列
+	sema  uint32
+}
+```
+
+Add方法：
+
+```go
+func (wg *WaitGroup) Add(delta int) {
+	...
+	state := wg.state.Add(uint64(delta) << 32)
+	v := int32(state >> 32)
+	w := uint32(state)
+	...
+	if v < 0 {
+		panic("sync: negative WaitGroup counter")
+	}
+	if w != 0 && delta > 0 && v == int32(delta) {
+		panic("sync: WaitGroup misuse: Add called concurrently with Wait")
+	}
+	if v > 0 || w == 0 {
+        // 计数器>0或者没有waiter都可以直接返回
+		return
+	}
+	if wg.state.Load() != state {
+        // 由于计数器减为0的这个协程需要唤醒所有waiter，它必须执行两步操作：
+        // 1.获取waiter数量 2.唤醒这些waiter
+        // 由于1和2之间存在「新增waiter」的风险，导致无法正确唤醒所有waiter
+        // 因此这里做了一个sanity check检查是否有并发的Add和Wait
+		panic("sync: WaitGroup misuse: Add called concurrently with Wait")
+	}
+    // 置waiter数量为0，避免其他协程重复唤醒同一批waiter
+	wg.state.Store(0)
+    // 唤醒waiter
+	for ; w != 0; w-- {
+		runtime_Semrelease(&wg.sema, false, 0)
+	}
+}
+```
+
+Wait方法：
+
+```go
+func (wg *WaitGroup) Wait() {
+	...
+	for {
+		state := wg.state.Load()
+		v := int32(state >> 32)
+		w := uint32(state)
+		if v == 0 {
+			...
+			return
+		}
+		// 增加waiter
+		if wg.state.CompareAndSwap(state, state+1) {
+			...
+			runtime_Semacquire(&wg.sema)
+            // sanity check检查是否有并发的Add和Wait
+			if wg.state.Load() != 0 {
+				panic("sync: WaitGroup is reused before previous Wait has returned")
+			}
+			...
+			return
+		}
+	}
+}
+```
+
+## sync.Pool
+
+sync.Pool一般是为了优化内存的使用，通过缓存对象来避免频繁地创建销毁对象，降低GC压力。
+
+结构体定义：
+
+```go
+type Pool struct {
+	noCopy noCopy
+
+    // per-P的poolLocal数组，下标为Pid
+	local     unsafe.Pointer
+    // local的大小
+	localSize uintptr
+
+    // 上次GC回收的local
+	victim     unsafe.Pointer
+    // victim的大小
+	victimSize uintptr
+
+	// 对象创建工厂，当Pool没有缓存的对象，会调用New来创建对象
+	New func() any
+}
+
+type poolLocalInternal struct {
+	private any // 避免每次都访问shared共享队列，类似于p.runnext
+	shared  poolChain // 无锁循环队列
+}
+
+type poolLocal struct {
+	poolLocalInternal
+
+	// 将poolLocal填充对齐到缓存行大小，避免多个P之间存在伪共享问题
+	pad [128 - unsafe.Sizeof(poolLocalInternal{})%128]byte
+}
+
+var (
+    // 保护allPools的锁
+	allPoolsMu Mutex
+
+	// 保存了当前在使用的Pool
+	allPools []*Pool
+
+	// 保存了当前victim不为空的Pool，这些Pool的victim会在下一轮GC被回收
+	oldPools []*Pool
+)
+```
+
+Put方法，将对象放入Pool，以在未来复用缓存的对象：
+
+```go
+func (p *Pool) Put(x any) {
+	if x == nil {
+		return
+	}
+	...
+    // 绑定G-M-P避免抢占，获取当前P的poolLocal
+	l, _ := p.pin()
+	if l.private == nil {
+        // 优先将对象放入poolLocal.private
+		l.private = x
+	} else {
+        // 将对象插入队列头
+		l.shared.pushHead(x)
+	}
+    // 解绑
+	runtime_procUnpin()
+	...
+}
+```
+
+pin方法：
+
+```go
+func (p *Pool) pin() (*poolLocal, int) {
+    // 将G和当前M绑定防止抢占，返回Pid
+	pid := runtime_procPin()
+    // 读取localSize和local
+	s := runtime_LoadAcquintptr(&p.localSize)
+	l := p.local
+	if uintptr(pid) < s {
+        // fast-path: 如果Pid在local数组中，直接返回即可
+		return indexLocal(l, pid), pid
+	}
+    // slow-pat: P的数量改变了，需要进一步处理
+	return p.pinSlow()
+}
+
+func (p *Pool) pinSlow() (*poolLocal, int) {
+	// 加全局锁（加锁前必须unpin，因为如果加锁失败了就会进入阻塞，此时p应该可以被抢占）
+	runtime_procUnpin()
+	allPoolsMu.Lock()
+	defer allPoolsMu.Unlock()
+    // 成功获取到锁，重新pin，并再次尝试走fast-path
+	pid := runtime_procPin()
+	s := p.localSize
+	l := p.local
+	if uintptr(pid) < s {
+		return indexLocal(l, pid), pid
+	}
+    // local为空表明当前Pool还没加入到全局Pool数组中
+	if p.local == nil {
+		allPools = append(allPools, p)
+	}
+	// 分配新的local，大小为GOMAXPROCS
+	size := runtime.GOMAXPROCS(0)
+	local := make([]poolLocal, size)
+	atomic.StorePointer(&p.local, unsafe.Pointer(&local[0]))
+	runtime_StoreReluintptr(&p.localSize, uintptr(size))
+	return &local[pid], pid
+}
+```
+
+Get方法，优先从缓存中取出对象，当缓存为空，会自动调用New工厂方法创建对象：
+
+```go
+func (p *Pool) Get() any {
+	...
+    // 绑定G-M-P避免抢占，获取当前P的poolLocal
+	l, pid := p.pin()
+    // 优先从private取缓存对象
+	x := l.private
+	l.private = nil
+	if x == nil {
+		// 考虑到时间局部性，与Put的将对象存入队头对应，Get从队头获取对象，提高cache命中率
+		x, _ = l.shared.popHead()
+		if x == nil {
+            // poolLocal为空，进一步处理
+			x = p.getSlow(pid)
+		}
+	}
+	runtime_procUnpin()
+	...
+    
+	if x == nil && p.New != nil {
+        // 整个Pool都没有缓存对象，用New创建
+		x = p.New()
+	}
+	return x
+}
+```
+
+getSlow方法：
+
+```go
+func (p *Pool) getSlow(pid int) any {
+	size := runtime_LoadAcquintptr(&p.localSize)
+	locals := p.local
+    // 尝试从其他P的缓存队列中获取对象
+	for i := 0; i < int(size); i++ {
+		l := indexLocal(locals, (pid+i+1)%int(size))
+		if x, _ := l.shared.popTail(); x != nil {
+			return x
+		}
+	}
+
+	// 从上一轮的poolLocal中获取，即希望即将要被回收victim中获取对象
+	size = atomic.LoadUintptr(&p.victimSize)
+	if uintptr(pid) >= size {
+		return nil
+	}
+	locals = p.victim
+	l := indexLocal(locals, pid)
+	if x := l.private; x != nil {
+		l.private = nil
+		return x
+	}
+	for i := 0; i < int(size); i++ {
+		l := indexLocal(locals, (pid+i)%int(size))
+		if x, _ := l.shared.popTail(); x != nil {
+			return x
+		}
+	}
+
+	// 很明显victim也是空，将victimSize置0
+	atomic.StoreUintptr(&p.victimSize, 0)
+
+	return nil
+}
+```
+
+面向用户的几个方法都过了一遍，Put和Get方法很明显只是单纯的存取对象，但Pool的亮点就在于自动识别那些对象需要回收，将GC负载变得更为平滑，那么Pool是如何做到的呢。
+
+答案就是poolCleanUp方法，这个方法在GC开始STW的时候被调用：
+
+```go
+func poolCleanup() {
+    // 让上一次进入victim的缓存全部GC掉
+	for _, p := range oldPools {
+		p.victim = nil
+		p.victimSize = 0
+	}
+
+    // 将当前缓存进入victim
+	for _, p := range allPools {
+		p.victim = p.local
+		p.victimSize = p.localSize
+		p.local = nil
+		p.localSize = 0
+	}
+
+    // 最后就是oldPools可能会被回收掉
+	oldPools, allPools = allPools, nil
+}
+```
+
+这个函数在init中被注册到runtime中作为回调函数，在GC开始时被调用：
+
+```go
+func init() {
+	runtime_registerPoolCleanup(poolCleanup)
+}
+
+// runtime/mgc.go
+func sync_runtime_registerPoolCleanup(f func()) {
+	poolcleanup = f
+}
+
+func clearpools() {
+    ...
+    
+	// clear sync.Pools
+	if poolcleanup != nil {
+		poolcleanup()
+	}
+    
+    ...
+}
+
+func gcStart(trigger gcTrigger) {
+    ... 
+    
+    // clearpools before we start the GC. If we wait they memory will not be
+	// reclaimed until the next GC cycle.
+	clearpools()
+    
+    ...
+}
+```
+
+综上，sync.Pool借助GC以及GC开始时的回调函数，为我们提供了：
+
+- 缓存对象的能力，避免频繁创建对象
+- 自动回收缓存池对象的能力
+
+其实我们也能很容易实现自己的对象缓存池，但是sync.Pool可以精确地控制在GC开始时回收缓存，而我们并不知道GC什么时候开始，需要更加复杂的手段去实现。
 
 ## 参考
 
@@ -341,3 +935,7 @@ type Map struct {
 [What is an invariant?](https://stackoverflow.com/questions/112064/what-is-an-invariant)
 
 [Russ's discussion about reentrant lock](https://groups.google.com/g/golang-nuts/c/XqW1qcuZgKg/m/Ui3nQkeLV80J)
+
+[深度解密 Go 语言之 sync.map](https://www.cnblogs.com/qcrao-2018/p/12833787.html)
+
+[How to understand acquire and release semantics?](https://stackoverflow.com/questions/24565540/how-to-understand-acquire-and-release-semantics)
