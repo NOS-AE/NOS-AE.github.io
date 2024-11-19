@@ -28,6 +28,8 @@ categories: [grpc]
 
 gRPC使用客户端服务发现，gRPC中称为[名称解析（Name Resolution）](https://grpc.io/docs/guides/custom-name-resolution/)，默认情况下使用DNS，也有其它的名称解析机制，具体可查看文档。
 
+我们就基于官方的
+
 ## 参考
 
 https://github.com/lubanproj/grpc-read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md
