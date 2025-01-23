@@ -300,4 +300,27 @@
   .highlight .ss {
     color: #90a959;
   }
+
+
+  #core-wrapper {
+    h1 {
+      text-shadow: 0 0 0.1rem var(--text-color), 0 0 0.7rem var(--text-muted-color);
+    }
+
+    h2 {
+      text-shadow: 0 0 0.1rem var(--text-color), 0 0 0.7rem var(--text-muted-color);
+    }
+
+    h3 {
+      text-shadow: 0 0 0.1rem var(--text-color), 0 0 0.5rem var(--text-muted-color);
+    }
+
+    h4 {
+      text-shadow: 0 0 0.1rem var(--text-color), 0 0 0.3rem var(--text-muted-color);
+    }
+
+    h5 {
+      text-shadow: 0 0 0.1rem var(--text-color), 0 0 0.2rem var(--text-muted-color);
+    }
+  }
 }

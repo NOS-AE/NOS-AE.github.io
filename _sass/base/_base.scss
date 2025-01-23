@@ -59,7 +59,7 @@ h1.dynamic-title {
 main {
   &.col-12 {
     @include bp.xxxl {
-      padding-right: 4.5rem !important;
+      // padding-right: 4.5rem !important;
     }
   }
 }
@@ -130,13 +130,13 @@ main {
 }
 
 .content {
-  font-size: 1.08rem;
+  font-size: 1.1rem;
   margin-top: 2rem;
   overflow-wrap: break-word;
 
-  @include bp.xl {
-    font-size: 1.03rem;
-  }
+  // @include bp.xl {
+  //   font-size: 1.08rem;
+  // }
 
   a {
     &.popup {
@@ -454,6 +454,13 @@ mjx-container {
 
       @include mx.pl-pr(1.75rem, true);
     }
+
+    @media (min-width: 1200px) {
+      max-width: 1280px;
+    }
+    @media (min-width: 1400px) {
+      max-width: 1400px;
+    }
   }
 }
 
@@ -467,10 +474,24 @@ mjx-container {
 
 #tail-wrapper {
   @include bp.xxxl {
-    padding-right: 4.5rem !important;
+    // padding-right: 4.5rem !important;
   }
 
   > :not(script) {
     margin-top: 3rem;
+  }
+}
+
+/* 渐变链接效果 */
+.gradient-link {
+  background-image: linear-gradient(var(--link-color) 0 0);
+  background-position: 50% 100%;
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  transition: background-size 0.4s, background-position 0s 0.4s;
+
+  &:hover {
+    background-position: 0% 100%;
+    background-size: 100% 1px;
   }
 }
