@@ -2,13 +2,67 @@
 layout: page
 title: "404: Page not found"
 permalink: /404.html
-
-redirect_from:
-  - /norobots/
-  - /assets/
-  - /posts/
 ---
 
-{% include lang.html %}
+<style>
+  .not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
 
-<p class="lead">{{ site.data.locales[lang].not_found.statement }}</p>
+  .not-found .error-code {
+    font-size: 7.5rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin: 0;
+    background: var(--text-muted-color);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .not-found .error-text {
+    font-size: 1.25rem;
+    color: var(--text-muted-color);
+    margin: 1.5rem 0 2.5rem;
+    font-weight: 400;
+  }
+
+  .not-found .home-link {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    background: #f0f0f0;
+  }
+
+  .not-found .home-link:hover {
+    background: var(--text-color);
+    color: var(--main-bg);
+  }
+
+  @media (max-width: 576px) {
+    .not-found .error-code {
+      font-size: 5rem;
+    }
+    
+    .not-found .error-text {
+      font-size: 1.1rem;
+    }
+  }
+</style>
+
+<div class="not-found">
+  <h1 class="error-code">404</h1>
+  <p class="error-text">Page not Found.</p>
+  <a href="{{ '/' | relative_url }}" class="home-link">Return Home</a>
+</div>

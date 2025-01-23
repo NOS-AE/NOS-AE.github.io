@@ -82,3 +82,12 @@ This project is published under [MIT License][license].
 [lib]: https://github.com/cotes2020/chirpy-static-assets
 [vscode]: https://code.visualstudio.com/
 [jetbrains]: https://www.jetbrains.com/?from=jekyll-theme-chirpy
+
+## Change Log
+- 将glightbox替换为fancybox以更好地展示图片
+- 参考[nichtshsu.github.io](https://github.com/NichtsHsu/nichtshsu.github.io)，搬运了部分UI
+  - 动态背景
+  - 暗黑主题下n级标题发光效果
+  - 代码配色
+- 链接UI美化，并从新标签页打开
+- main布局加宽，文字调大，粗体用主题色显示
