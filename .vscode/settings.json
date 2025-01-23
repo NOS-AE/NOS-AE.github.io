@@ -1,7 +1,7 @@
 {
   // Prettier
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   // Shopify Liquid
   "files.associations": {
     "*.html": "liquid"
@@ -29,5 +29,8 @@
   },
   "[javascript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
   }
 }
