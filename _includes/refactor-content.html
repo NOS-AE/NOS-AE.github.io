@@ -153,7 +153,7 @@
         {% assign _wrapper_start = _final_src
           | default: _src
           | prepend: '<a href="'
-          | append: '" class="popup img-link '
+          | append: '" data-fancybox="gallery"'
           | append: _class
           | append: '">'
         %}

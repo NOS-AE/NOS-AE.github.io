@@ -37,3 +37,7 @@ clipboard:
 
 mathjax:
   js: /assets/lib/mathjax/tex-chtml.js
+
+fancybox:
+  css: /assets/lib/fancybox/fancybox.css
+  js: /assets/lib/fancybox/fancybox.umd.js

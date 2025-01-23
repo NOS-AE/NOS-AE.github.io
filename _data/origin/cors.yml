@@ -39,9 +39,9 @@ dayjs:
     relativeTime: https://cdn.jsdelivr.net/npm/dayjs@1.11.13/plugin/relativeTime.js
     localizedFormat: https://cdn.jsdelivr.net/npm/dayjs@1.11.13/plugin/localizedFormat.js
 
-glightbox:
-  css: https://cdn.jsdelivr.net/npm/glightbox@3.3.0/dist/css/glightbox.min.css
-  js: https://cdn.jsdelivr.net/npm/glightbox@3.3.0/dist/js/glightbox.min.js
+fancybox:
+  css: https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css
+  js: https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js
 
 lazy-polyfill:
   css: https://cdn.jsdelivr.net/npm/loading-attribute-polyfill@2.1.1/dist/loading-attribute-polyfill.min.css
