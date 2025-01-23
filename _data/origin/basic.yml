@@ -24,10 +24,6 @@ dayjs:
     relativeTime: /assets/lib/dayjs/plugin/relativeTime.js
     localizedFormat: /assets/lib/dayjs/plugin/localizedFormat.js
 
-glightbox:
-  css: /assets/lib/glightbox/glightbox.min.css
-  js: /assets/lib/glightbox/glightbox.min.js
-
 lazy-polyfill:
   css: /assets/lib/loading-attribute-polyfill/loading-attribute-polyfill.min.css
   js: /assets/lib/loading-attribute-polyfill/loading-attribute-polyfill.umd.min.js

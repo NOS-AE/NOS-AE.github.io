@@ -1,7 +1,7 @@
 ---
 description: 简单描述epoll中LT和ET工作模式的区别和使用场景
 title: epoll中的LT和ET
-categories: note
+categories: [随笔]
 ---
 
 本来我在看的是golang的gmp调度器，然后看到注释和代码里面有提到netpoll这个东西，不知不觉又去翻看了下linux网络编程相关的知识，上网找了下博客，找到了ants开源库作者关于go netpoll的博客，而后又因为我不了解其中epoll的LT/ET是什么东西，又赶紧补了一下这些知识，唉，本该早点就了解的知识，一直没能沉下心来看，虽然平时开发业务大概率用不到，但是看稍微底层一点的知识就会涉及到这些东西呢...

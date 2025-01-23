@@ -1,7 +1,7 @@
 ---
 title: jekyll chrispy主题的语法
 description: 备用以防老年痴呆健忘
-categories: [note]
+categories: [随笔]
 math: true
 mermaid: true
 alt: Responsive rendering of Chirpy theme on multiple devices.
