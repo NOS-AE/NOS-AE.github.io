@@ -120,9 +120,9 @@ comments:
   # Giscus options › https://giscus.app
   giscus:
     repo: NOS-AE/NOS-AE.github.io # <gh-username>/<repo>
-    repo_id: R_kgDOMrOwZA
+    repo_id: R_kgDONt2cHw
     category: Announcements
-    category_id: DIC_kwDOMrOwZM4CiIP-
+    category_id: DIC_kwDONt2cH84CmTgu
     mapping: pathname # optional, default to 'pathname'
 description: >-
     strict: 0 # optional, default to '0'
