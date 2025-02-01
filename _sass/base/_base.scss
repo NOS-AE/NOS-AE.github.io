@@ -131,8 +131,7 @@ main {
 }
 
 #core-post {
-  a:not(.img-link) {
-    // @extend %link-underline;
+  a:not(.img-link):not(.anchor) {
     display: inline-block;
     padding-bottom: 1px;
     background-image: linear-gradient(var(--link-color) 0 0);
@@ -141,13 +140,9 @@ main {
     background-repeat: no-repeat;
     transition: background-size 0.36s, background-position 0s 0.36s;
     &:hover {
-      // @extend %link-hover;
       background-position: 100% 100%;
       background-size: 100% 1px;
       opacity: 0.8;
-    }
-    &:not(.img-link) {
-
     }
   }
 }

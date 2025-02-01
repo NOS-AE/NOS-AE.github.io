@@ -9,6 +9,9 @@ export function imgPopup() {
   }
 
   Fancybox.bind('[data-fancybox="gallery"]', {
+    caption: (fancybox, slide) => {
+      return slide.thumbEl?.alt || "";
+    },
     Thumbs: {
       type: "modern",
     },

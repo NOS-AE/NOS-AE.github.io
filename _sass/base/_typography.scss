@@ -11,6 +11,9 @@
       @extend %anchor;
     }
 
+    display: flex;
+    align-items: center;
+
     @if $i < 5 {
       $size-factor: 0.25rem;
 
@@ -26,11 +29,29 @@
         }
       }
 
-      & {
-        font-size: 1rem + (5 - $i) * $size-factor;
-      }
+      font-size: 1rem + (5 - $i) * $size-factor;
     } @else {
       font-size: 1.05rem;
+    }
+
+    @if $i <= 3 {
+      counter-increment: h#{$i};
+      
+      #core-wrapper & {
+        &::before {
+          margin-right: 0.6rem;
+          font-size: 0.9em;
+          font-weight: 500;
+        
+          @if $i == 2 {
+            content: counter(h2);
+            min-width: 1.2rem;
+          } @else if $i == 3 {
+            content: counter(h2) "." counter(h3);
+            min-width: 1.2rem;
+          }
+        }
+      }
     }
   }
 }
