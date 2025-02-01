@@ -1,12 +1,13 @@
-博客基于Chirpy Jekyll Theme
+This theme is forked from [Chirpy Jekyll Theme](https://github.com/cotes2020/jekyll-theme-chirpy)
 
 ## Change Log
-- 将glightbox替换为fancybox以更好地展示图片
-- 参考[nichtshsu.github.io](https://github.com/NichtsHsu/nichtshsu.github.io)，搬运了部分UI
-  - 动态背景
-  - 暗黑主题下n级标题发光效果
-  - 代码配色
-- 链接UI美化，并从新标签页打开
-- main布局加宽，文字调大，粗体用主题色显示
-- 调整404页面
-- 文章内h2及以下标题增加序号
+- replace glightbox with fancybox
+- refer to [nichtshsu.github.io](https://github.com/NichtsHsu/nichtshsu.github.io), copy part of the UI from it
+  - background animation
+  - glowing effect for n-level headings in dark theme
+  - code color scheme
+- beautify link UI and open in new tab
+- widen main layout, increase text size, display bold text in theme color
+- adjust 404 page
+- add numbering for h2 and lower level headings in articles
+- support [markdown alert syntax](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)

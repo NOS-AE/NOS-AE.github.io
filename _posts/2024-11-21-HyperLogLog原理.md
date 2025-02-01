@@ -2,8 +2,8 @@
 categories: [算法&数据结构]
 ---
 
+> [!note]
 > 这篇几乎是https://juejin.cn/post/6844903785744056333的转载-简略版
-{: .prompt-info } 
 
 ## 伯努利实验
 

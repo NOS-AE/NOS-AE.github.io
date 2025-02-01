@@ -79,6 +79,18 @@ Moon
 {: .prompt-danger }
 <!-- markdownlint-restore -->
 
+> [!note]
+> This is a `note` github alert
+
+> [!tip]
+> This is a `tip` github alert
+
+> [!warning]
+> This is a `warning` github alert
+
+> [!caution]
+> This is a `caution` github alert
+
 ## Tables
 
 | Company                      | Contact          | Country |
