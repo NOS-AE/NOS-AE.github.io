@@ -36,8 +36,8 @@ module Jekyll
       lines = content.split("\n")
       
       lines.map do |line|
-        # 跳过包含图片的行
-        next line if line.match?(/!\[.*?\]\(.*?\)/)
+        # 跳过包含图片的行（包括Markdown格式和HTML格式）
+        next line if line.match?(/!\[.*?\]\(.*?\)/) || line.match?(/<img[^>]+>/i)
         # 跳过已经是Markdown链接的行
         next line if line.match?(/\[.+?\]\(.+?\)/)
         # 跳过包含HTML链接的行

@@ -500,3 +500,13 @@ h4 {
 strong {
   color: var(--link-color);
 }
+
+#core-wrapper {
+  header {
+    .source-btn {
+      i {
+        color: var(--btn-share-color)
+      }
+    }
+  }
+}

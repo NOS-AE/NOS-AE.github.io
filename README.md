@@ -11,3 +11,6 @@ This theme is forked from [Chirpy Jekyll Theme](https://github.com/cotes2020/jek
 - adjust 404 page
 - add numbering for h2 and lower level headings in articles
 - support [markdown alert syntax](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)
+- add "Source" and "Raw" link buttons in article's header
+- refer to [kungfux.github.io](https://github.com/kungfux/kungfux.github.io)
+  - add progress back to back-to-top button

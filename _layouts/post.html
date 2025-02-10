@@ -22,19 +22,38 @@ script_includes:
     {% endif %}
 
     <div class="post-meta text-muted">
-      <!-- published date -->
-      <span>
-        {{ site.data.locales[lang].post.posted }}
-        {% include datetime.html date=page.date tooltip=true lang=lang %}
-      </span>
 
-      <!-- lastmod date -->
-      {% if page.last_modified_at and page.last_modified_at != page.date %}
-        <span>
-          {{ site.data.locales[lang].post.updated }}
-          {% include datetime.html date=page.last_modified_at tooltip=true lang=lang %}
-        </span>
-      {% endif %}
+      <div class="d-flex justify-content-between">
+        <div>
+          <!-- published date -->
+          <span>
+            {{ site.data.locales[lang].post.posted }}
+            {% include datetime.html date=page.date tooltip=true lang=lang %}
+          </span>
+          <!-- lastmod date -->
+          {% if page.last_modified_at and page.last_modified_at != page.date %}
+            <span>
+              {{ site.data.locales[lang].post.updated }}
+              {% include datetime.html date=page.last_modified_at tooltip=true lang=lang %}
+            </span>
+          {% endif %}
+        </div>
+
+        <div>
+            <!-- pageviews -->
+            {% if site.pageviews.provider and site.analytics[site.pageviews.provider].id %}
+              <span>
+                <em id="pageviews">
+                  <i class="fas fa-spinner fa-spin small"></i>
+                </em>
+                {{ site.data.locales[lang].post.pageview_measure }}
+              </span>
+            {% endif %}
+
+            <!-- read time -->
+            {% include read-time.html content=content prompt=true lang=lang %}
+          </div>
+        </div>
 
       {% if page.image %}
         {% capture src %}src="{{ page.image.path | default: page.image }}"{% endcapture %}
@@ -81,19 +100,16 @@ script_includes:
         </span>
 
         <div>
-          <!-- pageviews -->
-          {% if site.pageviews.provider and site.analytics[site.pageviews.provider].id %}
-            <span>
-              <em id="pageviews">
-                <i class="fas fa-spinner fa-spin small"></i>
-              </em>
-              {{ site.data.locales[lang].post.pageview_measure }}
-            </span>
-          {% endif %}
-
-          <!-- read time -->
-          {% include read-time.html content=content prompt=true lang=lang %}
+          <a href="https://raw.githubusercontent.com/{{ site.github.username }}/{{ site.github.username }}.github.io/refs/heads/{{ site.github.branch }}/_posts/{{ page.path | split: '/' | last }}" class="source-btn" aria-label="Raw" data-bs-toggle="tooltip" data-bs-original-title="Raw">
+            <i class="fa-brands fa-markdown"></i>
+          </a>
+          &nbsp;
+          <a href="https://github.com/{{ site.github.username }}/{{ site.github.username }}.github.io/blob/{{ site.github.branch }}/_posts/{{ page.path | split: '/' | last }}" class="source-btn" aria-label="Source" data-bs-toggle="tooltip" data-bs-original-title="Source">
+            <i class="fa-solid fa-code"></i>
+          </a>
         </div>
+
+  
       </div>
     </div>
   </header>

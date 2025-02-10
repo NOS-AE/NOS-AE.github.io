@@ -81,6 +81,7 @@ Moon
 
 > [!note]
 > This is a `note` github alert
+{: .prompt-info }
 
 > [!tip]
 > This is a `tip` github alert
@@ -101,7 +102,7 @@ Moon
 
 ## Links
 
-<http://127.0.0.1:4000>
+http://127.0.0.1:4000
 
 ## Footnote
 
