@@ -34,8 +34,16 @@
       font-size: 1.05rem;
     }
 
-    @if $i <= 3 {
-      counter-increment: h#{$i};
+    @if $i <= 4 {
+      @if $i == 2 {
+        counter-reset: h3 h4;
+        counter-increment: h2;
+      } @else if $i == 3 {
+        counter-reset: h4;
+        counter-increment: h3;
+      } @else if $i == 4 {
+        counter-increment: h4;
+      }
       
       #core-wrapper & {
         &::before {
@@ -48,6 +56,9 @@
             min-width: 1.2rem;
           } @else if $i == 3 {
             content: counter(h2) "." counter(h3);
+            min-width: 1.2rem;
+          } @else if $i == 4 {
+            content: counter(h2) "." counter(h3) "." counter(h4);
             min-width: 1.2rem;
           }
         }

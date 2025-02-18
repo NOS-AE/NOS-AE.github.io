@@ -38,8 +38,8 @@ ET模式：
 
 ## 参考链接
 
-https://strikefreedom.top/archives/linux-epoll-with-level-triggering-and-edge-triggering
+<https://strikefreedom.top/archives/linux-epoll-with-level-triggering-and-edge-triggering>
 
-https://strikefreedom.top/archives/go-netpoll-io-multiplexing-reacto
+<https://strikefreedom.top/archives/go-netpoll-io-multiplexing-reacto>
 
-https://zhuanlan.zhihu.com/p/40572954
+<https://zhuanlan.zhihu.com/p/40572954>
