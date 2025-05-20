@@ -49,19 +49,16 @@ jobs:
     - name: Get changed files
       id: changed-files
       uses: tj-actions/changed-files@v39
-      with:
-        files: |
-          _posts/**
-
-    - name: Dump GitHub context
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: echo "$GITHUB_CONTEXT"
+      # with:
+        # files: |
+        #   _posts/**.md
           
     - name: Sync changed files
+      env:
+        ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
       run: |
-        echo "Changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
-        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+        echo "Changed files: ${ALL_CHANGED_FILES}"
+        for file in ${ALL_CHANGED_FILES}; do
           if [[ $file == *.md ]]; then
             echo "Syncing $file..."
             python main.py "$file"
