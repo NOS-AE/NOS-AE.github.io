@@ -5,7 +5,7 @@ from blogs.cnblogs import sync_to_cnblogs
 
 def load_config():
     """加载配置文件"""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.yml')
+    config_path = os.path.join(os.path.dirname(__file__), '_config.yml')
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
