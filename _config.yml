@@ -228,3 +228,11 @@ jekyll-archives:
   permalinks:
     tag: /tags/:name/
     category: /categories/:name/
+
+blog-sync:
+  cnblogs: true
+
+cnblogs:
+  url: "https://rpc.cnblogs.com/metaweblog/cnblogs-username"
+  username: "cnblogs-username"
+  token: "cnblogs-token"
