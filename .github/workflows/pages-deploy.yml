@@ -52,9 +52,15 @@ jobs:
       with:
         files: |
           _posts/**
+
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
           
     - name: Sync changed files
       run: |
+        echo "Changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
         for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
           if [[ $file == *.md ]]; then
             echo "Syncing $file..."
