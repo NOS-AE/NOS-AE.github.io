@@ -25,7 +25,7 @@ def main():
     config = load_config()
     
     # 同步到博客园
-    if config['main']['cnblogs']:
+    if config['blog-sync']['cnblogs']:
         sync_to_cnblogs(sys.argv[1], config['cnblogs'])
 
 if __name__ == '__main__':
