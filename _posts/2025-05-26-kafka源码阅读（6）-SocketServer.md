@@ -280,7 +280,7 @@ private[kafka] class Processor(
 
 可以看到 `Processor` 大部分的成员都比较好理解，但是需要注意以下几个成员：
 
-- `selector`，这个是 kafka 对 Java NIO Selector 的二次封装。为了与 Java NIO Selector 进行区分，我们称其为 KSelector。由于 KSelector 比较复杂，另起了一篇文章进行剖析，详见[kafka源码阅读（7）-KSelector]()。KSelector 主要封装了如下功能：
+- `selector`，这个是 kafka 对 Java NIO Selector 的二次封装。为了与 Java NIO Selector 进行区分，我们称其为 KSelector。由于 KSelector 比较复杂，另起了一篇文章进行剖析，详见[kafka源码阅读（7）-KSelector](https://nos-ae.github.io/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB-6-SocketServer/)。KSelector 主要封装了如下功能：
 
   - 多路复用 I/O 和连接管理
 
