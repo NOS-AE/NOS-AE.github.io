@@ -1,0 +1,199 @@
+# If your site is in 'https', then make sure your base url isn't written using 'http' otherwise your sitemap would
+# contain http (as opposeed to https) URLs. This would affect Google indexing of your URLs.
+baseURL: "https://NOS-AE.github.io/"
+title: NOSAE
+copyright: "© [NOSAE](https://github.com/NOS-AE)"
+theme: [PaperMod]
+
+enableInlineShortcodes: true
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+enableEmoji: true
+pygmentsUseClasses: true
+mainsections: ["posts", "papermod"]
+
+minify:
+  disableXML: true
+  # minifyOutput: true
+
+pagination:
+  disableAliases: false
+  pagerSize: 5
+
+taxonomies:
+  category: categories
+  tag: tags
+
+languages:
+  zh:
+    languageName: "中文"
+    weight: 2
+    menu:
+      main:
+        - name: 首页
+          url: /
+          weight: 5
+        - name: 分类
+          url: categories/
+          weight: 10
+        - name: 归档
+          url: archives/
+          weight: 15
+        - name: 搜索
+          url: search/
+          weight: 20
+        - name: 关于
+          url: about/
+          weight: 25
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
+
+params:
+  env: production # to enable google analytics, opengraph, twitter-cards and schema.
+  description: "Theme PaperMod - https://github.com/NOS-AE/PaperMod"
+  author: by NOSAE
+  # author: ["Me", "You"] # multiple authors
+
+  defaultTheme: light
+  # disableThemeToggle: true
+  # ShowShareButtons: true
+  # ShowReadingTime: true
+  # disableSpecial1stPost: true
+  displayFullLangName: true
+  # ShowPostNavLinks: true
+  # ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowRssButtonInSectionTermList: true
+  ShowAllPagesInArchive: true
+  ShowPageNums: true
+  ShowToc: true
+  TocOpen: true
+  comments: true
+  images: ["images/papermod-cover.png"]
+
+  profileMode:
+    enabled: false
+    title: NOSAE
+    imageUrl: "https://avatars.githubusercontent.com/u/24354872?v=4"
+    imageTitle: my image
+    # imageWidth: 120
+    # imageHeight: 120
+
+  homeInfoParams:
+    Title: "NOSAE's Blog"
+    Content: >
+      👋你爱我我爱你，蜜雪冰城甜蜜蜜
+
+  socialIcons:
+    - name: github
+      title: Github
+      url: "https://github.com/NOS-AE/PaperMod"
+    - name: X
+      title: Twitter
+      url: "https://x.com/NOS_AE_"
+    - name: email
+      title: Email
+      url: "mailto:nosae9981@gmail.com"
+
+  editPost:
+    URL: "https://github.com/NOS-AE/NOS-AE.github.io/tree/main/content"
+    Text: "Raw" # edit text
+    appendFilePath: true # to append file path to Edit link
+
+  # label:
+  # iconSVG: '<svg xmlns="http://www.w3.org/2000/svg" height="25" viewBox="0 -960 960 960" fill="currentColor"><path d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/></svg>'
+  # text: "Home"
+  # icon: icon.png
+  # iconHeight: 35
+
+  # analytics:
+  #     google:
+  #         SiteVerificationTag: "XYZabc"
+
+  assets:
+    disableHLJS: true
+    favicon: "/favicon/favicon-32x32.png"
+    favicon16x16: "/favicon/favicon-16x16.png"
+    favicon32x32: "/favicon/favicon-32x32.png"
+    apple_touch_icon: "/favicon/apple-touch-icon.png"
+
+  # cover:
+  #     hidden: true # hide everywhere but not in structured data
+  #     hiddenInList: true # hide on list pages and home
+  #     hiddenInSingle: true # hide on single page
+
+  # fuseOpts:
+  #     isCaseSensitive: false
+  #     shouldSort: true
+  #     location: 0
+  #     distance: 1000
+  #     threshold: 0.4
+  #     minMatchCharLength: 0
+  #     keys: ["title", "permalink", "summary", "content"]
+  giscus:
+    repo: "NOS-AE/NOS-AE.github.io"
+    repoId: "R_kgDOO2fydw"
+    category: "Announcements"
+    categoryId: "DIC_kwDOO2fyd84CrEWk"
+    mapping: "pathname"
+    strict: false
+    reactionsEnabled: true
+    emitMetadata: false
+    inputPosition: "top"
+    theme: "light"
+    lang: "zh-CN"
+    crossorigin: "anonymous"
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+    parser:
+      attribute:
+        block: true
+  highlight:
+    noClasses: false
+    style: perldoc
+    # anchorLineNos: true
+    # codeFences: true
+    # guessSyntax: true
+    # lineNos: true
+
+# privacy:
+#   vimeo:
+#     disabled: false
+#     simple: true
+
+#   twitter:
+#     disabled: false
+#     enableDNT: true
+#     simple: true
+
+#   instagram:
+#     disabled: false
+#     simple: true
+
+#   youtube:
+#     disabled: false
+#     privacyEnhanced: true
+
+services:
+  instagram:
+    disableInlineCSS: true
+  x:
+    disableInlineCSS: true
+
+frontmatter:
+  date:
+    - :filename
+    - :default
+
+caches:
+  images:
+    dir: :cacheDir/images
