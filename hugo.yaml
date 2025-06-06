@@ -7,7 +7,7 @@ theme: [PaperMod]
 
 enableInlineShortcodes: true
 enableRobotsTXT: true
-buildDrafts: false
+buildDrafts: true
 buildFuture: false
 buildExpired: false
 enableEmoji: true
@@ -16,7 +16,7 @@ mainsections: ["posts", "papermod"]
 
 minify:
   disableXML: true
-  # minifyOutput: true
+  minifyOutput: true
 
 pagination:
   disableAliases: false
@@ -32,8 +32,8 @@ languages:
     weight: 2
     menu:
       main:
-        - name: 首页
-          url: /
+        - name: 文章
+          url: posts/
           weight: 5
         - name: 分类
           url: categories/
@@ -78,7 +78,7 @@ params:
   images: ["images/papermod-cover.png"]
 
   profileMode:
-    enabled: false
+    enabled: true
     title: NOSAE
     imageUrl: "https://avatars.githubusercontent.com/u/24354872?v=4"
     imageTitle: my image
