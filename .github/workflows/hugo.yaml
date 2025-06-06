@@ -28,6 +28,49 @@ defaults:
     shell: bash
 
 jobs:
+  # sync blog job
+  sync-blogs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r scripts/sync-blog/requirements.txt
+        
+    - name: Create config file
+      run: |
+        # 使用GitHub Secrets中的配置信息
+        sed -i "s|cnblogs-username|${{ secrets.CNBLOGS_USERNAME }}|g" scripts/sync-blog/config.yml
+        sed -i "s|cnblogs-token|${{ secrets.CNBLOGS_TOKEN }}|g" scripts/sync-blog/config.yml
+        
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v39
+      with:
+        quotepath: "false"
+        files: |
+          content/posts/**.md
+          
+    - name: Sync changed files
+      env:
+        ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+      run: |
+        echo "Changed files: ${ALL_CHANGED_FILES}"
+        for file in ${ALL_CHANGED_FILES}; do
+          if [[ $file == *.md ]]; then
+            echo "Syncing $file..."
+            python scripts/sync-blog/main.py "$file"
+          fi
+        done 
+
   # Build job
   build:
     runs-on: ubuntu-latest

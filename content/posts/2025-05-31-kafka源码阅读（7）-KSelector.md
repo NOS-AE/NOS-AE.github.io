@@ -231,7 +231,12 @@ public class KafkaChannel implements AutoCloseable {
 
 下面我们从 `KafkaChannel` 生命周期中被调用的方法逐个讲解分析。但因为 `KafkaChannel` 与最后一节要讲的 `KSelector` 息息相关，因此期间可能会涉及到 `KSelector`，读者可以对比观看甚至自行查阅源码，以便心中有数。
 
-首先KafkaChannel
+首先是 `prepare` 方法，这个方法用于 SSL 握手和 SASL 认证操作：
+
+``` java
+```
+
+
 
 ##  参考
 
