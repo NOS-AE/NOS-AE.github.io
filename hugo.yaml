@@ -56,7 +56,7 @@ outputs:
 
 params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
-  description: "Theme PaperMod - https://github.com/NOS-AE/PaperMod"
+  description: "NOSAE's Blog - https://github.com/NOS-AE"
   author: by NOSAE
   # author: ["Me", "You"] # multiple authors
 
@@ -93,7 +93,7 @@ params:
   socialIcons:
     - name: github
       title: Github
-      url: "https://github.com/NOS-AE/PaperMod"
+      url: "https://github.com/NOS-AE"
     - name: X
       title: Twitter
       url: "https://x.com/NOS_AE_"
@@ -102,7 +102,7 @@ params:
       url: "mailto:nosae9981@gmail.com"
 
   editPost:
-    URL: "https://github.com/NOS-AE/NOS-AE.github.io/tree/main/content"
+    URL: "https://raw.githubusercontent.com/NOS-AE/NOS-AE.github.io/refs/heads/main/content"
     Text: "Raw" # edit text
     appendFilePath: true # to append file path to Edit link
 
@@ -149,6 +149,8 @@ params:
     theme: "light"
     lang: "zh-CN"
     crossorigin: "anonymous"
+  
+  math: false
 
 markup:
   goldmark:
@@ -157,6 +159,16 @@ markup:
     parser:
       attribute:
         block: true
+    extensions:
+      passthrough:
+        delimiters:
+          block:
+          - - $$
+            - $$
+          inline:
+          - - $
+            - $
+        enable: true
   highlight:
     noClasses: false
     style: perldoc

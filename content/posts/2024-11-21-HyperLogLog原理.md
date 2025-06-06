@@ -1,6 +1,7 @@
 ---
 title: HyperLogLog原理
 categories: [算法&数据结构]
+math: true
 ---
 
 > [!note]
@@ -58,13 +59,7 @@ value 被转为 64 位的比特串，最终被按照上面的做法记录到每�
 
 在估算的计算公式中，`constant` 变量不是一个定值，它会根据实际情况而被分支设置，例如下面的样子。
 
-假设：m为分桶数，p是m的以2为底的对数。
-
-
-
-![img](https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/1693c786c5f0a97b~tplv-t2oaga2asx-jj-mark%3A3024%3A0%3A0%3A0%3Aq75.awebp)
-
-
+假设：m为分桶数，p是m的以2为底的对数，即 $p = log_2(m)$
 
 ```c
 // m 为桶数
