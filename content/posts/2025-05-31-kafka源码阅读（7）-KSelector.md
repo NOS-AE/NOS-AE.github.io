@@ -21,7 +21,7 @@ draft: true
 > 4. `KafkaChannel`：对 TransportLayer、NetworkReceive、NetworkSend 进一步封装，屏蔽了底层的实现细节，对上层更友好。
 > 5. `KSelector`：封装了 NIO 的 Selector 多路复用器组件。
 
-这些类在[上一篇](https://nos-ae.github.io/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB-6-SocketServer/)对 `Acceptor` 和 `Processor` 中多少有接触过，但为了避免过于深入细节而失去对 `Acceptor` 和 `Processor` 全局的把握，因此并没有深入分析这些类。本篇自底向上地去分析对这些类展开深入分析，即先分析被依赖的类。
+这些类在[上一篇](https://nos-ae.github.io/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB6-socketserver/)对 `Acceptor` 和 `Processor` 中多少有接触过，但为了避免过于深入细节而失去对 `Acceptor` 和 `Processor` 全局的把握，因此并没有深入分析这些类。本篇自底向上地去分析对这些类展开深入分析，即先分析被依赖的类。
 
 ## TransportLayer
 
