@@ -138,9 +138,9 @@ params:
   #     keys: ["title", "permalink", "summary", "content"]
   giscus:
     repo: "NOS-AE/NOS-AE.github.io"
-    repoId: "R_kgDOO2fydw"
+    repoId: "R_kgDOO3gbTA"
     category: "Announcements"
-    categoryId: "DIC_kwDOO2fyd84CrEWk"
+    categoryId: "DIC_kwDOO3gbTM4CrJWG"
     mapping: "pathname"
     strict: false
     reactionsEnabled: true

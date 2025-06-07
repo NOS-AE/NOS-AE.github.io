@@ -40,7 +40,13 @@ public class PlaintextTransportLayer implements TransportLayer {
 }
 ```
 
-这个类的方法基本上就只是简单调用了 `SocketChannel` 的同名方法，比如：
+这里 `key` 成员是在 `SocketServer` 的 `configureNewConnections` 方法调用的时候传入的，调用路径是：
+
+```
+SocketServer.configureNewConnections -> KSelector.register -> KSelector.registerChannel（注册SocketChannel到Selector上得到key） -> KSelector.buildAndAttachKafkaChannel（创建KafkaChannel，并将其作为key作为attachment，便于后续根据key反向获取KafkaChannel的引用）
+```
+
+`KafkaChannel` 的方法基本上就只是简单调用了 `SocketChannel` 的同名方法，比如：
 
 ``` java
 public int read(ByteBuffer dst) throws IOException {
@@ -52,7 +58,7 @@ public long write(ByteBuffer[] srcs) throws IOException {
 }
 ```
 
-需要注意的只有这个 `finishConnect` 方法，由于 `SocketChannel` 被设置成非阻塞的，因此需要通过 `finishConnect` 方法检查连接是否已经成功，连接成功后，注册 `OP_READ` 事件等待从 socket 读取对端发来的数据：
+需要注意的只有这个 `finishConnect` 方法，由于 `SocketChannel` 被设置成非阻塞的，因此外界需要通过 `finishConnect` 方法检查连接是否已经成功，连接成功后，注册 `OP_READ` 事件等待从 socket 读取对端发来的数据：
 
 ``` java
 public boolean finishConnect() throws IOException {
@@ -231,9 +237,74 @@ public class KafkaChannel implements AutoCloseable {
 
 下面我们从 `KafkaChannel` 生命周期中被调用的方法逐个讲解分析。但因为 `KafkaChannel` 与最后一节要讲的 `KSelector` 息息相关，因此期间可能会涉及到 `KSelector`，读者可以对比观看甚至自行查阅源码，以便心中有数。
 
-首先是 `prepare` 方法，这个方法用于 SSL 握手和 SASL 认证操作：
+首先是用于检查连接是否已建立的 `finishConnect` 方法：
 
 ``` java
+public boolean finishConnect() throws IOException {
+  SocketChannel socketChannel = transportLayer.socketChannel();
+  if (socketChannel != null) {
+    remoteAddress = socketChannel.getRemoteAddress();
+  }
+  boolean connected = transportLayer.finishConnect();
+  if (connected) {
+    if (ready()) {
+      state = ChannelState.READY;
+    } else if (remoteAddress != null) {
+      state = new ChannelState(ChannelState.State.AUTHENTICATE, remoteAddress.toString());
+    } else {
+      state = ChannelState.AUTHENTICATE;
+    }
+  }
+  return connected;
+}
+```
+
+TCP 连接建立完成后，接下来是用于 SSL 握手和 SASL 认证操作的 `prepare` 方法：
+
+``` java
+public void prepare() throws AuthenticationException, IOException {
+  boolean authenticating = false;
+  try {
+    if (!transportLayer.ready())
+      transportLayer.handshake();
+    if (transportLayer.ready() && !authenticator.complete()) {
+      authenticating = true;
+      authenticator.authenticate();
+    }
+  } catch (AuthenticationException e) {
+    // 握手或认证失败，state更新为AUTHENTICATION_FAILED
+    String remoteDesc = remoteAddress != null ? remoteAddress.toString() : null;
+    state = new ChannelState(ChannelState.State.AUTHENTICATION_FAILED, e, remoteDesc);
+    if (authenticating) {
+      // 如果是认证失败，要延迟关闭连接，防止暴力破解
+      // 延迟时间由参数connection.failed.authentication.delay.ms决定
+      delayCloseOnAuthenticationFailure();
+      throw new DelayedResponseAuthenticationException(e);
+    }
+    throw e;
+  }
+  if (ready()) {
+    // 握手与认证完成后，state转到READY
+    ++successfulAuthentications;
+    state = ChannelState.READY;
+  }
+}
+
+// 延迟关闭期间，禁止OP_WRITE
+private void delayCloseOnAuthenticationFailure() {
+  transportLayer.removeInterestOps(SelectionKey.OP_WRITE);
+}
+```
+
+下面就是网络读写操作相关方法，首先是用于预发送的 `setSend`，这个方法将待发送数据保存到 `KafkaChannel` 的 `send` 成员，注册 `OP_WRITE` 监听写事件的发生，后续将调用 `write` 方法发送数据：
+
+``` java
+public void setSend(Send send) {
+  if (this.send != null)
+    throw new IllegalStateException("Attempt to begin a send operation with prior send operation still in progress, connection id is " + id);
+  this.send = send;
+  this.transportLayer.addInterestOps(SelectionKey.OP_WRITE);
+}
 ```
 
 

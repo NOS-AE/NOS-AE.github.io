@@ -423,6 +423,7 @@ private def processCompletedReceives(): Unit = {
           // 获取header
           val header = RequestHeader.parse(receive.payload)
           if (header.apiKey == ApiKeys.SASL_HANDSHAKE && channel.maybeBeginServerReauthentication(receive, nowNanosSupplier))
+        		// 刷新身份认证
             trace(s"Begin re-authentication: $channel")
           else {
             val nowNanos = time.nanoseconds()
