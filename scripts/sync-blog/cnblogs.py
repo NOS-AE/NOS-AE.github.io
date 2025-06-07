@@ -1,9 +1,6 @@
 import xmlrpc.client
 import re
 import sys
-import os
-from datetime import datetime
-import dateutil.parser
 
 class CnblogsClient:
     def __init__(self, config):
@@ -94,7 +91,6 @@ def parse_markdown_file(file_path):
     title = None
     categories = []
     tags = None
-    date = None
 
     for line in front_matter.split('\n'):
         if line.startswith('title:'):
@@ -107,26 +103,10 @@ def parse_markdown_file(file_path):
             tags_str = line[5:].strip()
             if tags_str.startswith('[') and tags_str.endswith(']'):
                 tags = tags_str.strip()[1:-1]
-        elif line.startswith('date:'):
-            date_str = line[5:].strip()
-            try:
-                # 使用 dateutil.parser 来解析各种格式的日期
-                date = dateutil.parser.parse(date_str)
-            except ValueError as e:
-                print(f"警告：无法解析日期 {date_str}：{str(e)}")
 
     if not title:
         print("错误：未找到文章标题")
         sys.exit(1)
-
-    # 如果 front matter 中没有日期，尝试从文件名中提取
-    if not date:
-        filename = os.path.basename(file_path)
-        try:
-            date_str = filename.split('-', 2)[:2]  # 获取前两个部分（年月日）
-            date = datetime.strptime('-'.join(date_str), '%Y-%m-%d')
-        except (ValueError, IndexError):
-            print(f"警告：无法从文件名中提取日期：{filename}")
 
     categories.append('[Markdown]')
     # 在post_content这个字符串中出现的第二个"---"的下一行加上一行helloworld
@@ -137,7 +117,6 @@ def parse_markdown_file(file_path):
         'categories': categories,
         'tags': tags,
         'content': post_content,
-        'date': date
     }
 
 def sync_to_cnblogs(file_path, config):
@@ -158,8 +137,6 @@ def sync_to_cnblogs(file_path, config):
         post["categories"] = post_data['categories']
     if post_data['tags']:
         post["mt_keywords"] = 'kafka,mq,源码'  # post_data['tags']
-    if post_data['date']:
-        post["dateCreated"] = post_data['date'].strftime('%Y%m%dT%H:%M:%S')
 
     # 检查是否存在相同标题的文章
     existing_post_id = client.find_post_by_title(post_data['title'])
