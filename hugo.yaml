@@ -112,9 +112,12 @@ params:
   # icon: icon.png
   # iconHeight: 35
 
-  # analytics:
+  analytics:
   #     google:
   #         SiteVerificationTag: "XYZabc"
+    umami:
+      id: 34198a0b-759f-412a-9db5-df76a807a06b # fill in your Umami ID
+      domain: https://cloud.umami.is # fill in your Umami domain
 
   assets:
     disableHLJS: true

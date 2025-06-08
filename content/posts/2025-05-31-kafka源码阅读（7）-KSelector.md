@@ -1,8 +1,8 @@
 ---
-title: kafka源码阅读（7）-KSelector与KafkaChannel
+title: kafka源码阅读（7）-Kafka中的NIO封装（上）
 categories: [源码阅读,kafka]
 tags: [kafka,mq,源码]
-draft: true
+draft: false
 ---
 
 > [!note]
@@ -43,7 +43,7 @@ public class PlaintextTransportLayer implements TransportLayer {
 这里 `key` 成员是在 `SocketServer` 的 `configureNewConnections` 方法调用的时候传入的，调用路径是：
 
 ```
-SocketServer.configureNewConnections -> KSelector.register -> KSelector.registerChannel（注册SocketChannel到Selector上得到key） -> KSelector.buildAndAttachKafkaChannel（创建KafkaChannel，并将其作为key作为attachment，便于后续根据key反向获取KafkaChannel的引用）
+SocketServer.configureNewConnections -> KSelector.register -> KSelector.registerChannel（注册SocketChannel到Selector上得到key） -> KSelector.buildAndAttachKafkaChannel（创建KafkaChannel，并将其作为key作为attachment，便于后续根据key反向获取KafkaChannel）
 ```
 
 `KafkaChannel` 的方法基本上就只是简单调用了 `SocketChannel` 的同名方法，比如：
@@ -64,6 +64,7 @@ public long write(ByteBuffer[] srcs) throws IOException {
 public boolean finishConnect() throws IOException {
   boolean connected = socketChannel.finishConnect();
   if (connected)
+    // 注销OP_CONNECT，注册OP_READ
     key.interestOps(key.interestOps() & ~SelectionKey.OP_CONNECT | SelectionKey.OP_READ);
   return connected;
 }
@@ -224,7 +225,7 @@ public class KafkaChannel implements AutoCloseable {
   // 状态相关
   private ChannelState state; // 通道当前状态，如认证中、关闭中等状态
   private boolean disconnected; // 通道是否已断开连接
-  private ChannelMuteState muteState; // 静音状态，控制是否接收新请求，以及连接断开后是否有待处理的请求
+  private ChannelMuteState muteState; // 静默状态，控制是否接收新请求，以及连接断开后是否有待处理的请求
   private boolean midWrite; // 是否正在进行写操作，防止并发写入导致的数据损坏
  
   // 资源管理相关
@@ -245,6 +246,7 @@ public boolean finishConnect() throws IOException {
   if (socketChannel != null) {
     remoteAddress = socketChannel.getRemoteAddress();
   }
+  // TransportLayer是否已经建立连接
   boolean connected = transportLayer.finishConnect();
   if (connected) {
     if (ready()) {
@@ -296,21 +298,127 @@ private void delayCloseOnAuthenticationFailure() {
 }
 ```
 
-下面就是网络读写操作相关方法，首先是用于预发送的 `setSend`，这个方法将待发送数据保存到 `KafkaChannel` 的 `send` 成员，注册 `OP_WRITE` 监听写事件的发生，后续将调用 `write` 方法发送数据：
+下面就是网络读写操作相关方法，首先是用于预发送的 `setSend`，这个方法将待发送数据保存到 `send` 中，并注册 `OP_WRITE` 监听写事件的发生：
 
 ``` java
 public void setSend(Send send) {
   if (this.send != null)
     throw new IllegalStateException("Attempt to begin a send operation with prior send operation still in progress, connection id is " + id);
   this.send = send;
+  // 监听是否可写
   this.transportLayer.addInterestOps(SelectionKey.OP_WRITE);
 }
 ```
 
+`write` 方法将 `send` 中的数据真正发送出去：
 
+``` java
+public long write() throws IOException {
+  if (send == null)
+    return 0;
+
+  // 标识正在处于写入状态中
+  midWrite = true;
+  // 数据写入TransportLayer
+  return send.writeTo(transportLayer);
+}
+```
+
+`read` 方法用于从网络接收数据保存到 `NetworkReceive` 中：
+
+```java
+public long read() throws IOException {
+  if (receive == null) {
+    receive = new NetworkReceive(maxReceiveSize, id, memoryPool);
+  }
+
+  // 读取数据到receive中
+  long bytesReceived = receive(this.receive);
+
+  if (this.receive.requiredMemoryAmountKnown() && !this.receive.memoryAllocated() && isInMutableState()) {
+    // 通道静默，待当前请求处理完毕后再接收新的请求数据
+    mute();
+  }
+  return bytesReceived;
+}
+
+// 从网络接收数据
+private long receive(NetworkReceive receive) throws IOException {
+  try {
+    // 从TransportLayer读取数据
+    return receive.readFrom(transportLayer);
+  } catch (SslAuthenticationException e) {
+    String remoteDesc = remoteAddress != null ? remoteAddress.toString() : null;
+    state = new ChannelState(ChannelState.State.AUTHENTICATION_FAILED, e, remoteDesc);
+    throw e;
+  }
+}
+
+// 通道静默
+void mute() {
+  if (muteState == ChannelMuteState.NOT_MUTED) {
+    // 注销OP_READ事件
+    if (!disconnected) transportLayer.removeInterestOps(SelectionKey.OP_READ);
+    muteState = ChannelMuteState.MUTED;
+  }
+}
+```
+
+最后，由于 socket 是非阻塞模式，读写可能都需要多次调用，因此提供了 `maybeCompleteSend` 和 `maybeCompleteReceive` 返回发送完毕后的 `NetworkSend` 以及接收完毕后的 `NetworkReceive`，如果还未完成则返回 null：
+
+``` java
+public Send maybeCompleteSend() {
+  if (send != null && send.completed()) {
+    midWrite = false;
+    // 注销OP_WRITE
+    transportLayer.removeInterestOps(SelectionKey.OP_WRITE);
+    // 返回NetworkSend
+    Send result = send;
+    send = null;
+    return result;
+  }
+  return null;
+}
+
+public NetworkReceive maybeCompleteReceive() {
+  if (receive != null && receive.complete()) {
+    // 将NetworkReceive的缓冲区指针置0，供稍后外界读取数据
+    receive.payload().rewind();
+    // 返回NetworkReceive
+    NetworkReceive result = receive;
+    receive = null;
+    return result;
+  }
+  return null;
+}
+```
+
+总结一下，在 `KafkaChannel` 中的核心操作也就上面这些连接、读、写操作，除了这些外还有几个 authentication 相关的方法，本篇不关注。另外注意到还有个 `ChannelMuteState` 用于标识通道的静默状态：
+
+``` java
+public enum ChannelMuteState {
+  NOT_MUTED,
+  MUTED,
+  MUTED_AND_RESPONSE_PENDING,
+  MUTED_AND_THROTTLED,
+  MUTED_AND_THROTTLED_AND_RESPONSE_PENDING
+}
+```
+
+是否静默对应的只是是否注册了 OP_READ，静默则注销 OP_READ 表示不接受新请求。但我发现其实后面三种状态在代码中并没有用上，这几个状态可能是为了测试/调试，或者用作将来的扩展，我们只关心是否静默即可。
+
+## 总结
+
+本篇介绍了开篇提及的在 kafka 中对应 Java NIO 所封装的几个类，包括：
+
+- 封装 `SocketChannel` 的 `TransportLayer`
+- 封装 `Buffer` 的 `NetworkSend` 和 `NetworkRecieve`
+- 将上面三个类统一封装的 `KafkaChannel`，提供更友好的接口供上层使用
+
+由于篇幅原因，将封装 `Selector` 的 `KafkaSelector`（KSelector）放在了下一篇。
 
 ##  参考
 
 [图解 Kafka 网络层实现机制（一）](https://www.51cto.com/article/711962.html)
 
-[图解 Kafka 网络层实现机制之 Selector 多路复用器](https://www.51cto.com/article/713648.html)
+[图解 Kafka 网络层实现机制之 Selector 多路复用器](https://www.51cto.com/article/713648.html) 

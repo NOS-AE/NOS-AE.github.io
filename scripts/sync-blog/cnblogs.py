@@ -109,9 +109,9 @@ def parse_markdown_file(file_path):
         sys.exit(1)
 
     categories.append('[Markdown]')
-    # 在post_content这个字符串中出现的第二个"---"的下一行加上一行helloworld
-    second_dash_index = post_content.find('---', post_content.find('---') + 1)
-    post_content = post_content[:second_dash_index + 1] + f"\n\n> 原文博客：https://nos-ae.github.io\n\n" + post_content[second_dash_index + 3:]
+    # 去除frontmatters并添加原文博客
+    second_dash_index = post_content.find('---', 1)
+    post_content = f"\n\n> 原文博客：https://nos-ae.github.io\n\n" + post_content[second_dash_index + 3:]
     return {
         'title': title,
         'categories': categories,

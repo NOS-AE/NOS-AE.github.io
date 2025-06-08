@@ -361,7 +361,7 @@ private def processNewResponses(): Unit = {
         case response: NoOpResponse =>
           updateRequestMetrics(response)
           trace(s"Socket server received empty response to send, registering for read: $response")
-          // 无需发送响应给客户端，因此需要取消通道静音，读取更多请求到socket buffer中
+          // 无需发送响应给客户端，因此需要取消通道静默，读取更多请求到socket buffer中
           // 实际上会注册OP_READ事件
           handleChannelMuteEvent(channelId, ChannelMuteEvent.RESPONSE_SENT)
           tryUnmuteChannel(channelId)
@@ -392,7 +392,7 @@ private def processNewResponses(): Unit = {
 }
 ```
 
-可见 `processNewResponses` 只是处理了暂存在队列中的响应，这些响应最初其实是由 `KafkaApi` 完成对请求的处理之后生成响应存到队列中的。在 `processNewResponses` 中的几种响应类型在上一篇博客中已经说过，不再多说。另外这里出现了一些陌生的概念，比如 通道 `KafkaChannel`、静音 `mute` 等，通道用来封装一个网络连接，隐藏了底层的网络通信细节，而静音和限流都是通道提供的功能，静音期间，服务器不会从该通道读取更多请求，但会继续处理已接收的请求。这些概念目前知道大概的意思就够了。
+可见 `processNewResponses` 只是处理了暂存在队列中的响应，这些响应最初其实是由 `KafkaApi` 完成对请求的处理之后生成响应存到队列中的。在 `processNewResponses` 中的几种响应类型在上一篇博客中已经说过，不再多说。另外这里出现了一些陌生的概念，比如 通道 `KafkaChannel`、静默 `mute` 等，通道用来封装一个网络连接，隐藏了底层的网络通信细节，而静默和限流都是通道提供的功能，静默期间，服务器不会从该通道读取更多请求，但会继续处理已接收的请求。这些概念目前知道大概的意思就够了。（实际上只有静默与非静默会实际产生作用，并没有单独的限流功能，这点在下一篇中会提及）
 
 ### poll
 
@@ -451,7 +451,7 @@ private def processCompletedReceives(): Unit = {
               }
               // 将Request发送到RequestChannel待处理
               requestChannel.sendRequest(req)
-              // 将通道静音，等待请求处理完毕后再继续接收新的请求，底层实现是注销OP_READ
+              // 将通道静默，等待请求处理完毕后再继续接收新的请求，底层实现是注销OP_READ
               selector.mute(connectionId)
               handleChannelMuteEvent(connectionId, ChannelMuteEvent.REQUEST_RECEIVED)
             }
@@ -489,7 +489,7 @@ private def processCompletedSends(): Unit = {
       // 执行响应完成后的回调逻辑
       response.onComplete.foreach(onComplete => onComplete(send))
 
-      // 通道取消静音
+      // 通道取消静默
       handleChannelMuteEvent(send.destination, ChannelMuteEvent.RESPONSE_SENT)
       tryUnmuteChannel(send.destination)
     } catch {
@@ -501,7 +501,7 @@ private def processCompletedSends(): Unit = {
 }
 ```
 
-可以看到，与 `processCompletedReceives` 中收到请求时对通道静音相对应，响应完成发送之后需要取消对通道的静音。
+可以看到，与 `processCompletedReceives` 中收到请求时对通道静默相对应，响应完成发送之后需要取消对通道的静默。
 
 ### processDisconnected
 
