@@ -111,7 +111,7 @@ def parse_markdown_file(file_path):
     categories.append('[Markdown]')
     # 去除frontmatters并添加原文博客
     second_dash_index = post_content.find('---', 1)
-    post_content = f"\n\n> 原文博客：https://nos-ae.github.io\n\n" + post_content[second_dash_index + 3:]
+    post_content = f"\n\n> 原文博客：https://nosae.top\n\n" + post_content[second_dash_index + 3:]
     return {
         'title': title,
         'categories': categories,
