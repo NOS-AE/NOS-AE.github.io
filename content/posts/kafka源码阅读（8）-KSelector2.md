@@ -3,7 +3,7 @@ date: 2025-06-09T00:34:04+08:00
 title: kafka源码阅读（8）-Kafka中的NIO封装（下）
 categories: [源码阅读,kafka]
 tags: [kafka,mq,源码]
-draft: true
+draft: false
 ---
 
 > [!note]
@@ -359,7 +359,7 @@ void pollSelectionKeys(
 }
 ```
 
-有了前面细节知识的铺垫，比如握手/认证、内部缓冲区等，这块代码虽然看着很长但是并不难理解。需要注意的是，传进来的 key 可能每次都是一样顺序，为了保证在内存池内存较低时（`memoryPool.availableMemory() < lowMemThreshold`）后面的 key 在读操作方面不被饿死（因为从网络读数据是需要从内存池分配内存的），将会打乱这些 key 的遍历顺序。
+有了前面细节知识的铺垫，比如握手/认证、内部缓冲区等，这块代码虽然看着很长但是并不难理解。需要注意的是，传进来的 key 可能每次都是一样顺序，为了保证在内存池内存较低时后面的 key 在读操作方面不被饿死（因为从网络读数据是需要从内存池分配内存的），将会打乱这些 key 的遍历顺序。
 
 ## attemptWrite / attemptRead
 

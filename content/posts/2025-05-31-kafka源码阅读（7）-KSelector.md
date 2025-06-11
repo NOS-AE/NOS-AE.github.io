@@ -70,9 +70,11 @@ public boolean finishConnect() throws IOException {
 }
 ```
 
-相比之下，`SslTransportLayer` 的实现就复杂许多，因为涉及到数据加密操作，不再是简单地调用 `SocketChannel` 同名方法。比如在 `transferFrom` 方法的实现中，`PlainTransportLayer` 只是调用了 `SocketChannel.transferTo`，而 `SslTransportLayer` 还需要申请堆外内存缓冲来存放文件的数据，加密之后再写入对端网络节点，感兴趣可以的读者自行查看源码。
+相比之下，`SslTransportLayer` 的实现就复杂许多，因为涉及到数据加密操作，不再是简单地调用 `SocketChannel` 同名方法。比如在 `transferFrom` 方法的实现中，`PlainTransportLayer` 只是调用了 `SocketChannel.transferTo`，让操作系统去优化写入，而 `SslTransportLayer` 还需要申请堆外内存缓冲来存放文件的数据，加密之后再写入对端网络节点，感兴趣可以的读者自行查看源码。
 
-另外还有个 `hasPendingWrites` 方法，在 `PlaintextTransportLayer` 中固定返回 false，而 `SslTranportLayer` 中返回 `netWriteBuffer.hasRemaining()`。这同样是因为加密的原因，调用 `SslTransportLayer` 的 `write()` 方法时，数据首先会加密并保存在 `netWriteBuffer` 中，然后再写入 `SocketChannel`，因此 `SslTransportLayer` 相当于多了个内部缓冲 `netWriteBuffer`， `hasPendingWrites` 就是用于检查内部缓冲的数据是否已经全部写入 `SocketChannel`。
+另外还有个 hasPendingWrites 方法，在 PlaintextTransportLayer 中固定返回 false，而 SslTranportLayer 中返回 netWriteBuffer.hasRemaining()。这同样是因为加密的原因，调用 SslTransportLayer.write 时，数据首先会加密并保存在 netWriteBuffer 中，然后再写入 SocketChannel，因此 SslTransportLayer 相当于多了个内部缓冲 netWriteBuffer， hasPendingWrites 就是用于检查内部缓冲的数据是否已经全部写入 SocketChannel。因此如下图所示， Ssl 和 Plaintext 的很大一个区别就是是否有内部缓冲区，这一点要记住，因为会影响到后面的源码分析。
+
+<img src="https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/image-20250611175612484.png" alt="image-20250611175612484" style="zoom:50%;" />
 
 ## NetworkReceive
 
