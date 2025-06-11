@@ -10,7 +10,7 @@ tags: [kafka,mq,源码]
 >
 > 如无特殊说明，文中代码片段将删除 debug 信息、异常触发、英文注释等代码，以便观看核心代码。
 
-[上一篇](https://nos-ae.github.io/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB5-%E8%AF%B7%E6%B1%82%E9%98%9F%E5%88%97/)简单过了一下 kafka 网络层中的请求队列，本章开始上点干货，真正看一下 kafka 的网络层是如何运作的。本篇的解析重点在于 SocketServer 中的 Acceptor 以及 Processor 线程。
+[上一篇](https://nosae.top/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB5-%E8%AF%B7%E6%B1%82%E9%98%9F%E5%88%97/)简单过了一下 kafka 网络层中的请求队列，本章开始上点干货，真正看一下 kafka 的网络层是如何运作的。本篇的解析重点在于 SocketServer 中的 Acceptor 以及 Processor 线程。
 
 ## 总览
 
@@ -122,7 +122,7 @@ def shutdown(): Unit = {
 }
 ```
 
-可以看到移除 processor 将会调用 `shutdown` 关闭 processor。最后还有一个 `shutdownLatch.await()`，后面会说到。
+可以看到移除 processor 将会调用 `shutdown` 唤醒阻塞在 poll 上的 selector 关闭 processor。最后还有一个 `shutdownLatch.await()`，后面会说到。
 
 上面简单分析了 `Acceptor` 对 processor 的管理相关方法。作为一个 `Runnable`，我们重点需要分析的其实是 `run` 方法，即线程执行的代码：
 
@@ -199,7 +199,7 @@ private def accept(key: SelectionKey): Option[SocketChannel] = {
     connectionQuotas.inc(endPoint.listenerName, socketChannel.socket.getInetAddress, blockedPercentMeter)
     // 设置为非阻塞I/O
     socketChannel.configureBlocking(false)
-    // 禁用TCP Nagle算法，提高小包的传输效率
+    // 禁用TCP Nagle算法，提高数据传输实时性
     socketChannel.socket().setTcpNoDelay(true)
     // 启用TCP长连接
     socketChannel.socket().setKeepAlive(true)
@@ -280,7 +280,7 @@ private[kafka] class Processor(
 
 可以看到 `Processor` 大部分的成员都比较好理解，但是需要注意以下几个成员：
 
-- `selector`，这个是 kafka 对 Java NIO Selector 的二次封装，主要是封装了网络 I/O 事件的处理、安全协议支持等。为了与 Java NIO Selector 进行区分，我们称其为 KSelector。由于 KSelector 比较复杂，另起了一篇文章进行剖析，详见[kafka源码阅读（7）-KSelector](https://nos-ae.github.io/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB7-kselector/)。总之，我们知道，Acceptor 和 Processor 都会拥有自己的 selector。
+- `selector`，这个是 kafka 对 Java NIO Selector 的二次封装，主要是封装了网络 I/O 事件的处理、安全协议支持等。为了与 Java NIO Selector 进行区分，我们称其为 KSelector。由于 KSelector 比较复杂，另起了一篇文章进行剖析，详见[kafka源码阅读（7）-KSelector](https://nosae.top/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB7-kselector/)。总之，我们知道，Acceptor 和 Processor 都会拥有自己的 selector。
 - `inflightResponses` 不同于 `responseQueue`，后者是为了排队这些待发送的响应，而有些 Response 回调函数需要在响应发送给客户端之后才触发，因此额外需要一个 `inflightResponses` 来暂存正在发送的响应，以便发送成功后执行回调逻辑。
 
 接下来我们继续分析 `Processor` 线程的方法。`Processor` 的众多方法都是由 `run` 方法展开调用的，因此我们直接分析 `run` 方法：
@@ -296,7 +296,7 @@ override def run(): Unit = {
         configureNewConnections()
         // 处理responseQueue队列中的响应，发送给客户端
         processNewResponses()
-        // 基于I/O多路复用，获取就绪的I/O事件
+        // 基于I/O多路复用，获取并处理就绪的I/O事件
         poll()
         // 处理客户端请求
         processCompletedReceives()
@@ -561,7 +561,7 @@ private def close(connectionId: String): Unit = {
 ## 总结
 本篇我们深入解析了 Kafka 网络通信的关键组件 —— SocketServer，重点关注了其中的 Acceptor 与 Processor 两大核心线程。可以看到，Kafka 采用了典型的 Reactor 模式，通过 Acceptor 线程专职接收连接请求、将连接分发至 Processor，而 Processor 再负责网络读写、请求转发、响应发送等复杂逻辑。
 
-值得关注的是，为了简化 Processor 对连接的处理逻辑，kafka 将 NIO Selector 抽取出来封装到 KSelector 以提供复杂的 I/O 操作、将 SocketChannel 封装到 KafkaChannel 中实现底层传输逻辑以及维护通道的状态，这些内容我们在下一篇[kafka源码阅读（7）-KSelector](https://nos-ae.github.io/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB7-kselector/)中进行分析。
+值得关注的是，为了简化 Processor 对连接的处理逻辑，kafka 将 NIO Selector 抽取出来封装到 KSelector 以提供复杂的 I/O 操作、将 SocketChannel 封装到 KafkaChannel 中实现底层传输逻辑以及维护通道的状态，这些内容我们在下一篇[kafka源码阅读（7）-KSelector](https://nosae.top/posts/kafka%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB7-kselector/)中进行分析。
 
 
 ## 参考
