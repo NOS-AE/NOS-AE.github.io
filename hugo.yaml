@@ -115,9 +115,16 @@ params:
   analytics:
   #     google:
   #         SiteVerificationTag: "XYZabc"
+    # https://umami.is/
     umami:
       id: 34198a0b-759f-412a-9db5-df76a807a06b # fill in your Umami ID
       domain: https://cloud.umami.is # fill in your Umami domain
+
+    # https://www.goatcounter.com/
+    goatcounter:
+      enable: true
+      host: nosae.top # for blocking local development
+      id: nosae
 
   assets:
     disableHLJS: true

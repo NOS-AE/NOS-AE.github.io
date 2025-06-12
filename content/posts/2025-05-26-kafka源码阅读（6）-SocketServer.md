@@ -1,5 +1,5 @@
 ---
-title: kafka源码阅读（6）-SocketServer中的Processor和Acceptor
+title: kafka源码阅读（6）-SocketServer之Processor与Acceptor
 categories: [源码阅读,kafka]
 tags: [kafka,mq,源码]
 ---
