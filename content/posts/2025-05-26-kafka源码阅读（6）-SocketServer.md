@@ -27,7 +27,7 @@ socketServer.startup(startupProcessors = false)
 
 结合上一篇对 `RequestChannel` 的分析，这里可以直接给出 `SocketServer`对一个网络请求及其响应的流转过程，为了便于新手理解全貌，这里给出的是简化版，如图所示：
 
-<img src="https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/image-20250526111546911.png" alt="image-20250526111546911" style="zoom:50%;" />
+<img src="https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/image-20250613102901361.png" alt="image-20250613102901361" style="zoom:50%;" />
 
 图中最左边的小人表示客户端，可以是 producer、consumer 或 broker。 `KafkaRequestHandlerPool` 是真正处理请求逻辑的线程池。具体地，它会调用 `KafkaApis.handle` 对不同 API 进行不同的处理逻辑。目前对这个组件有个印象即可不必深究，我们的重点还是在上面的 `SocketServer` 上。
 
