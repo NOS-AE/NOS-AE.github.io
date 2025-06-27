@@ -45,7 +45,7 @@ listeners=CONTROLLER://192.1.1.8:9091,INTERNAL://192.1.1.8:9092,EXTERNAL://10.1.
 
 <img src="https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/image-20250614142837564.png" alt="image-20250614142837564" style="zoom:50%;" />
 
-这个图可以和剖析 Processor 和 Acceptor 那篇中的图对比着观看。
+这个图可以和剖析 Processor 与 Acceptor 那篇中的图对比着观看。
 
 ## 类定义
 
@@ -164,7 +164,7 @@ private def createControlPlaneAcceptorAndProcessor(endpointOpt: Option[EndPoint]
     nextProcessorId += 1
     // 添加该processor到acceptor中
     controlPlaneAcceptor.addProcessors(listenerProcessors, ControlPlaneThreadPrefix)
-    // 启动acceptor，作为守护线程
+    // 启动acceptor，作为非守护线程
     KafkaThread.nonDaemon(s"${ControlPlaneThreadPrefix}-kafka-socket-acceptor-${endpoint.listenerName}-${endpoint.securityProtocol}-${endpoint.port}", controlPlaneAcceptor).start()
     // 等待acceptor优雅启动完毕
     controlPlaneAcceptor.awaitStartup()
@@ -265,4 +265,4 @@ def startDataPlaneProcessors(authorizerFutures: Map[Endpoint, CompletableFuture[
 
 ## 总结
 
-这篇的内容并不难，重点在于体现 kafka 网络层的架构设计，即将数据类型与控制类型的请求分离，将它们在不同的通道上进行传输，保证 kafka 能及时处理控制类请求，最大程度避免出现比如「某个在请求队列中的控制请求由于前面有大量数据请求，导致这些数据请求都基于过时的状态进行处理」的情况。
+这篇的内容并不难，重点在于体现 kafka 网络层的架构设计，即将数据类型与控制类型的请求分离，将它们在不同的通道上进行传输，保证 kafka 能及时处理控制类请求，最大程度避免出现比如「某个在请求队列中的控制请求由于h前面有大量数据请求，导致这些数据请求都基于过时的状态进行处理」的情况。
