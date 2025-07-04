@@ -3,7 +3,7 @@ date: 2025-06-26T11:40:32+08:00
 title: Kafka源码阅读（10）-SocketServer之网络请求全流程分析
 categories: [源码阅读,kafka]
 tags: [kafka,mq,源码]
-draft: true
+draft: false
 ---
 
 > [!note]
@@ -22,7 +22,7 @@ Handler 相关的类主要有 `KafkaRequestHandler`（线程）和 `KafkaRequest
 
 ### 线程
 
-首先来看下线程类 KafkaRequestHandler，这个类负责不断从请求队列获取请求，然后使用 KafkaApi 实际执行该请求的处理逻辑。由于比较简单，我就把整个类都搬上来讲，不单独讲类定义和方法：
+首先来看下线程类 KafkaRequestHandler，这个类负责不断从请求队列获取请求，然后使用 KafkaApis 实际执行该请求的处理逻辑。由于比较简单，我就把整个类都搬上来讲，不单独讲类定义和方法：
 
 ``` scala
 class KafkaRequestHandler(
@@ -281,7 +281,7 @@ private def processCompletedReceives(): Unit = {
 
 ### Handler 执行请求处理逻辑
 
-上一步中，Processor 将 NetworkReceive 转换成了 Request 放到请求队列中等待处理，下一步就是 Handler 从请求队列中获取请求并借助 KafkaApi 执行处理逻辑：
+上一步中，Processor 将 NetworkReceive 转换成了 Request 放到请求队列中等待处理，下一步就是 Handler 从请求队列中获取请求并借助 KafkaApis 执行处理逻辑：
 
 ``` scala
 def run(): Unit = {
@@ -312,13 +312,48 @@ def run(): Unit = {
 }
 ```
 
-KafkaApi 内部通过不同 handleXXXRequest 方法来处理不同的 API 请求，比如 handleProduceRequest。处理完成后，最终会调用 `processor.enqueueResponse(response)` 将响应发送到负责该连接的 Processor 的响应队列中待处理。因此从执行请求逻辑到得到响应的调用路径是：
+KafkaApis 内部会根据请求类型来调用相应的 handleXXXRequest 方法来处理，比如我们挑个简单的请求类型来举例，LIST_GROUPS 类型的 API 请求将会调用 handleListGroupsRequest 进行处理，该 API 的功能是列出集群中消费者组的信息：
 
-```(空)
+``` scala
+def handleListGroupsRequest(request: RequestChannel.Request): Unit = {
+  // 获取所有消费者组的信息
+  val (error, groups) = groupCoordinator.handleListGroups()
+  // 如果客户端拥有集群的描述权限
+  if (authorize(request, DESCRIBE, CLUSTER, CLUSTER_NAME))
+    // 将所有消费者组信息返回给客户端
+    sendResponseMaybeThrottle(request, requestThrottleMs =>
+      new ListGroupsResponse(new ListGroupsResponseData()
+          .setErrorCode(error.code)
+          .setGroups(groups.map { group => new ListGroupsResponseData.ListedGroup()
+            .setGroupId(group.groupId)
+            .setProtocolType(group.protocolType)}.asJava
+          )
+          .setThrottleTimeMs(requestThrottleMs)
+      ))
+  else {
+    // 否则，过滤掉那些没有描述权限的消费者组
+    val filteredGroups = groups.filter(group => authorize(request, DESCRIBE, GROUP, group.groupId))
+    // 将有描述权限的消费者组信息返回给客户端
+    sendResponseMaybeThrottle(request, requestThrottleMs =>
+      new ListGroupsResponse(new ListGroupsResponseData()
+        .setErrorCode(error.code)
+        .setGroups(filteredGroups.map { group => new ListGroupsResponseData.ListedGroup()
+          .setGroupId(group.groupId)
+          .setProtocolType(group.protocolType)}.asJava
+        )
+        .setThrottleTimeMs(requestThrottleMs)
+      ))
+  }
+}
+```
+
+请求处理完成后，最终会调用 `processor.enqueueResponse(response)` 将响应发送到负责该连接的 Processor 的响应队列中待处理。因此从执行请求逻辑到得到响应的调用路径是：
+
+```
 KafkaRequestHandler.run
-KafkaApi.handle
-KafkaApi.handleXXXRequest
-KafkaApi.sendResponse
+KafkaApis.handle
+KafkaApis.handleXXXRequest
+KafkaApis.sendResponse
 RequestChannel.sendResponse(response)
 Processor.enqueueResponse(response)
 ```
@@ -377,3 +412,6 @@ private def processCompletedSends(): Unit = {
 
 本篇是 SocketServer 组件的收尾篇，主要介绍了请求处理相关的最后一个组件，即负责执行请求处理逻辑的 KafkaRequestHandler，最后再快速串了一下客户端从连接建立、请求接收和处理，最后到响应返回的全流程，因为除了掌握各个组件的实现细节外，整体的流程和架构也是必须要清楚的。
 
+## 参考
+
+极客时间《Kafka核心源码解读》——胡夕
