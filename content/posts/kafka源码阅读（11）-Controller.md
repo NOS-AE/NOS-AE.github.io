@@ -6,6 +6,12 @@ tags: [kafka,mq,源码]
 draft: false
 ---
 
+> [!note]
+>
+> 基于开源 kafka 2.5 版本。
+>
+> 如无特殊说明，文中代码片段将删除 debug 信息、异常触发、英文注释等代码，以便观看核心代码。
+
 在本 kafka 系列的源码阅读系列中，之前几篇涵盖了 log 和 network 两大板块。本篇将开启第三板块：controller。首先我们要明确 controller 具体是一个什么东西，它其实是集群中选举出来的某一个 broker。controller 通过与 zookeeper 配合来处理：
 
 1. 分区 leader 选举
