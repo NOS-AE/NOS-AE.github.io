@@ -199,7 +199,7 @@ private def isBrokerEpochStale(brokerEpochInRequest: Long): Boolean = {
 
 什么时候会出现过时请求的情况呢？当 broker 快速重启后收到了该请求，原文注释：
 
->   When the broker restarts very quickly, it is possible for this broker to receive request intended for its previous generation so the broker should skip the stale request.
+> When the broker restarts very quickly, it is possible for this broker to receive request intended for its previous generation so the broker should skip the stale request.
 
 那为什么要拒绝这种过时的请求呢？将 broker 整体简单看成一个状态机的话，控制类请求会将 broker 从状态 A 更改为状态 B，因此状态 A 是该请求所期望该 broker 的状态，但 broker 重启之后可能状态不再是 A 而是 C，所以不能继续处理该请求，而拒绝该请求，否则可能会状态紊乱。
 

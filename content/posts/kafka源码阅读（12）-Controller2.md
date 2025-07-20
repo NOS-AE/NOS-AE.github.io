@@ -58,9 +58,7 @@ case object ShutdownEventThread extends ControllerEvent {
 }
 ```
 
-注意到 ControllerEvent 中还有一个 ControllerState 类型的字段，我们在下一小节会说。
-
-首先，在 KafkaControll 类中的 state 方法用于表示 controller 当前状态：
+注意到 ControllerEvent 中还有一个 ControllerState 类型的字段。首先，在 KafkaControll 类中的 state 方法用于表示 controller 当前状态：
 
 ``` scala
 private def state: ControllerState = eventManager.state
@@ -73,7 +71,7 @@ private def state: ControllerState = eventManager.state
 def state: ControllerState = _state
 ```
 
-因此 ControllerEventManager._state 就表示 controller 当前的状态。关于这个 _state 与 ControllerEvent.state 有什么关系，我们在下一小节会分析。
+因此 ControllerEventManager._state 就表示 controller 当前的状态。关于这个 _state 与 ControllerEvent.state 有什么关系，我们在下一小节会提到。
 
 另外，事件队列并不直接存储 ControllerEvent，而是将其包装在 QueuedEvent 中，主要是为了包装「避免重复处理」的逻辑：
 
@@ -161,13 +159,13 @@ override def doWork(): Unit = {
 }
 ```
 
-这里我们就知道了 controller 接收到事件时 controller 设置为该事件对应的状态。不同的事件可能属于同一种状态，比如 RegisterBrokerAndReelect 事件和 Reelect 事件都属于 ControllerChange 状态。
+这里我们就知道了 controller 接收到事件时，controller 状态会设置成该事件对应的状态，当事件处理完毕后又会变成空闲。不同的事件可能属于同一种状态，比如 RegisterBrokerAndReelect 事件和 Reelect 事件都属于 ControllerChange 状态。
 
 至于为什么要记录 controller 的状态，其实是为了监控 controller 状态的变更速率，比如监控到某些状态变更速率异常的时候，进一步确定可能造成瓶颈的 controller 事件，并调试问题。
 
 ## 事件管理器 ControllerEventManager
 
-叫是叫“管理器”，但看图就知道没这么复杂，不过就是把事件队列和那个单线程封装一下，对外提供一个 put 方法来发送事件而已。
+虽然叫“管理器”，但看图就知道，其实并不复杂，不过就是把事件队列和那个单线程封装一下，然后对外提供了一个 put 方法来发送事件而已。
 
 另外我们知道 QueuedEvent 有 process 和 preemt 方法。process 好理解，就是常规的调用路径：
 
@@ -186,12 +184,22 @@ QueuedEvent.preempt
 ControllerEventProcessor.preempt
 ```
 
-实际上，clearAndPut 就是为了清空当前队列的事件，然后处理 put 进去的那个事件。比如：
+实际上，clearAndPut 在 put 事件之前，会先清空当前队列的事件：
+
+``` scala
+def clearAndPut(event: ControllerEvent): QueuedEvent = inLock(putLock) {
+  queue.asScala.foreach(_.preempt(processor))
+  queue.clear()
+  put(event)
+}
+```
+
+使用的场景比如：
 
 - 在 zookeeper 会话过期时，在开启新的会话前，会调用 beforeInitializingSession方法，其中使用 clearAndPut(Expire) 确保了所有待处理事件在创建新会话前被处理
 - 在 KafkaController 的 shutdown 方法中，使用 clearAndPut(ShutdownEventThread) 确保关闭事件被立即处理
 
-另外我们发现 clearAndPut 不是简单地清空队列，而是还会调用被清空事件的 preempt 方法，因为某些事件包含回调函数，即使事件被抢占，也需要通知调用者（实际上只有以下两种事件需要在被清理前调用回调函数）：
+我们也发现 clearAndPut 并不是简单地清空队列，而是还会调用被清空事件的 preempt 方法，因为某些事件包含回调函数，即使事件被抢占，也需要通知调用者（实际上只有以下两种事件需要在被清理前调用回调函数）：
 
 ``` scala
 // KafkaController
