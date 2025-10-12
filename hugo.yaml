@@ -78,7 +78,7 @@ params:
   images: ["images/papermod-cover.png"]
 
   profileMode:
-    enabled: true
+    enabled: false
     title: NOSAE
     imageUrl: "https://avatars.githubusercontent.com/u/24354872?v=4"
     imageTitle: my image
@@ -88,7 +88,7 @@ params:
   homeInfoParams:
     Title: "NOSAE's Blog"
     Content: >
-      👋你爱我我爱你，蜜雪冰城甜蜜蜜
+      编辑个签，展示我的独特态度
 
   socialIcons:
     - name: github
