@@ -3,7 +3,7 @@ date: 2025-10-04T13:50:47+08:00
 title: Informer原理详解
 tags: [k8s,源码,informer]
 categories: [源码阅读,client-go]
-draft: true
+draft: false
 ---
 
 > [!note]
@@ -14,12 +14,12 @@ draft: true
 
 informer是k8s客户端库提供的一个组件，用于 **资源监听+缓存**，用于高效感知k8s集群中的资源变化。
 
-实际上它就是构建controller的基础。比如我们用kubebuilder搭好一个CRD的脚手架后，我们只需要去实现Reconcile方法进行资源的调谐，不需要Reconcile什么时候会被调用，底层其实是informer监听到资源变化后会自动回调Reconcile，即：
+实际上它就是构建controller的基础。比如我们用kubebuilder搭好一个CRD的脚手架后，我们只需要去实现Reconcile方法进行资源的调谐，不需要关心Reconcile什么时候会被调用。底层其实是informer监听到资源变化后会自动回调Reconcile，即：
 
 - Informer：负责监听和缓存资源变化
 - Controller：负责消费这些变化，比如执行 **Reconcile**（调谐逻辑）
 
-当然，informer可以单独拿出来用，它并不与controller强绑定，只是informer+controller是最常用的方法，下面我也会按照informer+controller的方式进行详解。
+当然，informer可以单独拿出来用，它并不与controller强绑定，只是informer+controller是最常见的用法。
 
 ## informer架构
 
@@ -31,9 +31,10 @@ informer是k8s客户端库提供的一个组件，用于 **资源监听+缓存**
 
 介绍一下图中的核心组件：
 
-- **Reflector：负责从apiserver获取资源的全量数据（list）并持续监听增量变化（watch）**
-- **DeltaFIFO：先进先出的队列，队列元素就是资源对象的历史变更事件**
-- **Indexer：存放全量的资源对象，并提供索引用于快速访问对象**
+- **Reflector**：负责从apiserver获取资源的全量数据（list）并持续监听增量变化（watch）
+- **DeltaFIFO**：先进先出的队列，队列元素就是资源对象的历史变更事件
+- **Indexer**：存放全量的资源对象，并提供索引用于快速访问对象
+- **Informer**：消费队列中的事件，分发给ResourceEventHandler进行处理
 
 以及用户代码部分的组件：
 
@@ -487,7 +488,7 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 
 ## Indexer
 
-Indexer顾名思义是用来做索引的，索引什么呢？索引对象的。比如要获取namespace="default"的所有的pod，用Indexer就能快速得到结果。这个过程有点像倒排索引，即搜索属性为给定值的所有资源，比如namespace就是pod的属性。因此，索引的结构大概是这样的：
+Indexer顾名思义是用来做索引的，索引什么呢？索引对象的key的。比如要获取namespace="default"的所有的pod，用Indexer就能快速得到这些对象的key集合（比如"pod1"、"pod2"这样的字符串集合），然后用这些key访问map获取对象。索引过程有点像倒排索引，即搜索属性为给定值的所有资源，比如namespace就是pod的属性。因此，索引的结构大概是这样的：
 
 ```json
 {
@@ -508,9 +509,23 @@ Indexer顾名思义是用来做索引的，索引什么呢？索引对象的。�
 
 （TL;DR: 并且Indexer只是一个接口，它在Store接口基础上提供了索引的相关方法。Indexer的实现是cache，cache又依赖于threadSafeMap提供索引功能。另外，DeltaFIFO所实现的Queue接口其实也是Store...）
 
-说到这里我觉得可以捋一下这些本地存储相关的各个接口的关系，因为看起来还挺乱的。不过具体实现的代码不会去精读，自己扫一眼即可。
+## 存储相关接口
 
+说到这里我觉得可以捋一下这些本地存储相关的各个接口的关系，因为看起来还挺乱的。不过具体实现的代码不会去精读，自己扫一眼即可。类图如下：
 
+<img src="https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/image-20251020232406996.png" alt="image-20251020232406996" style="zoom:50%;" />
+
+Store提供了最基础的key-value存储能力，但是要注意这里key是通过value计算出来的，所以可以看到Store的许多方法都只传value不需要传key，比如插入一个对象时，key是通过keyFunc(obj)计算得到的：
+
+``` go
+Add(obj interface{}) error
+```
+
+另外需要注意的是，Store在实现上并不是一个简单kv存储，key对应的所谓value实际上叫accumulator。accumulator可以被实现为简单的一个obj，即简单kv存储，比如图中的cache；它也可以被实现为对象的集合，比如DeltaFIFO的实现中，accumulator就是一个Deltas。
+
+Indexer和Queue则是在基础存储的基础上，进行了其它能力的扩展。Indexer提供了对key进行索引查找的能力，Queue提供了对象先进先出的能力。
+
+最后再来看看结构体，我们关注的是cache和DeltaFIFO。cache缓存了所有的对象，缓存的是apiserver中的对象，并且cache实现了Indexer提供索引查找的能力。cache的实现很简单，因为具体的存储与索引实现放在了threadSafeMap中。DeltaFIFO虽然实现了Store，但目的不是存下所有对象，只是复用Store提供的方法，比如Add方法实际上类似Push的能力。
 
 ## 总结
 
