@@ -545,4 +545,4 @@ Indexer和Queue则是在基础存储的基础上，进行了其它能力的扩�
 
 <https://gobomb.github.io/post/whats-resync-in-informer/>
 
-<https://kubernetes.io/zh-cn/docs/reference/using-api/api-concepts/#resource-versions>																
+<https://kubernetes.io/zh-cn/docs/reference/using-api/api-concepts/#resource-versions>
