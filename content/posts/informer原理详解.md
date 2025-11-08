@@ -27,7 +27,7 @@ informer是k8s客户端库提供的一个组件，用于 **资源变更监听+�
 
 图来自 [client-go under the hood](https://github.com/kubernetes/sample-controller/blob/master/docs/controller-client-go.md)。
 
-这张图清晰地表达了informer+controller所涉及到的组件以及它们的各自的组件边界，上半部分是client-go库内部实现informer的相关组件，下半部分是用户自定义Controller
+这张图清晰地表达了informer+controller所涉及到的组件以及它们的各自的组件边界，上半部分是client-go库内部实现informer的相关组件，下半部分是用户自定义Controller。我们下面都会围绕这张架构图来展开讨论。
 
 informer核心组件包括：
 
@@ -617,3 +617,5 @@ workqueue看起来接口好像挺多挺乱的，可以像上面的存储相关�
 <https://gobomb.github.io/post/whats-resync-in-informer/>
 
 <https://kubernetes.io/zh-cn/docs/reference/using-api/api-concepts/#resource-versions>
+
+https://www.zhaohuabing.com/post/2023-03-09-how-to-create-a-k8s-controller/

@@ -32,21 +32,24 @@ languages:
     weight: 2
     menu:
       main:
+        - name: Bash
+          url: bash/
+          weight: 5
         - name: 文章
           url: posts/
-          weight: 5
+          weight: 10
         - name: 分类
           url: categories/
-          weight: 10
+          weight: 15
         - name: 归档
           url: archives/
-          weight: 15
+          weight: 20
         - name: 搜索
           url: search/
-          weight: 20
+          weight: 25
         - name: 关于
           url: about/
-          weight: 25
+          weight: 30
 
 outputs:
   home:
@@ -78,7 +81,7 @@ params:
   images: ["images/papermod-cover.png"]
 
   profileMode:
-    enabled: false
+    enabled: true
     title: NOSAE
     imageUrl: "https://avatars.githubusercontent.com/u/24354872?v=4"
     imageTitle: my image
