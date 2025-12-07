@@ -600,7 +600,7 @@ workqueue 看起来接口好像挺多挺乱的，可以像上面的存储相关�
 
 用 [operator](https://kubernetes.io/zh-cn/docs/concepts/extend-kubernetes/operator/) 那一套来举例：平时基于 opeartor 那一套去进行开发用户控制器进行集群资源调谐的时候，一般用 kubebuilder 去生成一些资源对象的深拷贝代码、Reconciler 的脚手架代码等，虽然这些代码看起来并没涉及 informer、indexer 那些东西，但运行起来，当集群资源对象发生变更时，确实会及时回调我们的 Reconcile 调谐方法。在了解了 informer 这套机制后，不用想就知道是 informer 在底层起作用。
 
-实际上，kubebuilder 生成的代码里是用了 **controller-runtime** 这个库，它是对 client-go 进一步封装。这个库将 informer、workqueue、processitem 等封装起来，对外提供各种丰富的功能，让开发者更方便地去开发用户控制器。比如开发者只需要按照controller-runtime的规范，定义一个 Reconciler 并注册进去，把项目运行起来就能轻松对资源进行调谐了，十分省事。
+实际上，kubebuilder 生成的代码里是用了 **controller-runtime** 这个库，它是对 client-go 进一步封装。这个库将 informer、workqueue、processitem 等封装起来，对外提供各种丰富的功能，让开发者更方便地去开发用户控制器。比如开发者只需要按照 controller-runtime 的规范，定义一个 Reconciler 并注册进去，把项目运行起来就能轻松对资源进行调谐了，十分省事。
 
 ## 参考
 
