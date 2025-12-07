@@ -7,6 +7,20 @@ ShowToc: true
 TocOpen: true
 ---
 
+## 变量
+
+### 变量展开
+
+``` bash
+# 对变量内容进行分割、路径名展开，换行符和空格均视为字段分隔，最终多行的内容会被平铺为一行，以空格分割
+echo $var
+
+# 保留内容格式，多行依然输出为多行
+echo "$var"
+```
+
+
+
 ## 文件操作
 
 ### 查找文件
@@ -49,6 +63,14 @@ chown user:group file.txt
 ```
 
 ## 文本处理
+
+### 清空文件内容
+
+`:`是一个内置的 Shell 命令，被称为 **空命令 (No-op)**。它什么也不做，但会返回成功的退出状态 (0)，将其输出（实际上什么也没有）重定向到文件，相当于把文件清空了。
+
+``` bash
+:>somefile
+```
 
 ### heredoc
 
@@ -193,6 +215,65 @@ ifconfig
 
 ## Git
 
+> 在 Git 的设计中，有一个非常经典的概念区分：**“porcelain（瓷器）命令”** 和 **“plumbing（管道）命令”**。这其实反映了 Git 的**两层结构设计**——底层“管道层”（plumbing）与上层“用户界面层”（porcelain）。
+>
+> **plumbing commands**（底层命令）
+>
+> - 面向**脚本、工具和 Git 自身内部机制**。
+> - 接口稳定、输出简洁（方便机器读取）。
+> - 不负责美观输出，也不提供复杂逻辑。
+> - 主要用于直接操作 Git 对象（blob、tree、commit、tag）。
+>
+> **porcelain commands**（高层命令）
+>
+> - 面向**普通用户**。
+> - 提供易用的语法和丰富的输出。
+> - 通常内部会调用多个 plumbing 命令组合实现功能。
+>
+> 比如：
+>
+> ``` bash
+> # procelain命令
+> git add file.txt
+> git commit -m "add file"
+> 
+> # 等价于下面的plumbing命令
+> git hash-object -w file.txt # 1. 计算文件对象哈希并存入对象库
+> 
+> # 2. 更新暂存区
+> git update-index --add file.txt
+> 
+> # 3. 生成树对象
+> tree_hash=$(git write-tree)
+> 
+> # 4. 生成提交对象
+> commit_hash=$(echo "commit message" | git commit-tree $tree_hash -p HEAD)
+> 
+> # 5. 更新引用
+> git update-ref refs/heads/main $commit_hash
+> ```
+>
+> 
+
+### git rev-parse
+
+``` bash
+# 获取当前分支HEAD的哈希值
+git rev-parse HEAD
+
+# 获取.git的路径
+git rev-parse --git-dir
+
+# 获取工作区顶层路径，用于脚本快速找到仓库根目录
+git rev-parse --show-toplevel
+
+# 获取commit的所在分支名
+# 此处是获取HEAD所在分支名，等同于执行git branch --show-current
+git rev-parse --abbrev-ref HEAD
+```
+
+
+
 ## 压缩解压
 
 ### tar
@@ -316,6 +397,21 @@ docker build -t image_name:tag .
 # 清理未使用的镜像
 docker image prune
 ```
+
+## K8S 相关
+
+### 代理
+
+``` bash
+# 启动反代localhost:8001，直接能请求api，无需authN & authZ
+kubectl proxy
+
+# 启动反代*:8001，并接受所有地址的请求
+# 如果不设置--accept-hosts，则只能请求127.0.0.1，访问其它ip会返回Forbidden
+kubectl proxy --address='0.0.0.0' --accept-hosts='.*'
+```
+
+
 
 ## 性能分析
 
