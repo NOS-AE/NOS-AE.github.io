@@ -3,7 +3,7 @@ date: 2025-12-05T23:45:16+08:00
 title: K8S的Service
 tags: [k8s]
 categories: [k8s]
-draft: true
+draft: false
 ---
 
 ## 虚拟 IP 和服务代理

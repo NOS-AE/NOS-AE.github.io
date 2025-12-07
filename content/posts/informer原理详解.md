@@ -379,8 +379,6 @@ Indexer 顾名思义是用来做索引的，索引什么呢？索引对象的 ke
 
 实际上 Indexer 的本质还是一个存储了所有对象的本地缓存，只不过在这之基础上提供了索引功能。
 
-（TL; DR: ...）
-
 ## 存储相关接口
 
 上面说到的 Indexer 只是一个接口，可以看到 Indexer 是在 Store 接口基础上提供了索引的相关方法：
@@ -618,4 +616,4 @@ workqueue 看起来接口好像挺多挺乱的，可以像上面的存储相关�
 
 <https://kubernetes.io/zh-cn/docs/reference/using-api/api-concepts/#resource-versions>
 
-https://www.zhaohuabing.com/post/2023-03-09-how-to-create-a-k8s-controller/
+<https://www.zhaohuabing.com/post/2023-03-09-how-to-create-a-k8s-controller/>
