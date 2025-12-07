@@ -258,7 +258,7 @@ spec:
 
 其实对于普通Service来说，也会涉及到DNS，DNS会创建一个Service的完全限定域名（FQDN，Fully Qualified Domain Name），命令为`<service-name>.<namespace>.svc.cluster.local`，其有一条值为ClusterIP的A记录。
 
-无头Service的完全限定域名下则包含了n条A记录（ n为backend Pod的数量），值分别为每个Pod的IP，并且还会为每个Pod创建单独完全限定域名，命名为`<pod-name>.<service-name>.<namespace>.svc.cluster.local`，每个域名下包含值为该Pod的IP的A记录。
+无头Service的完全限定域名下则包含了n条A记录（ n为backend Pod的数量），值分别为每个Pod的IP，并且还会为每个Pod创建单独完全限定域名，命名为`<pod-name>.<service-name>.<namespace>.svc.cluster.local`，每个域名下包含值为该Pod的IP的A记录。 
 
 因此，无头 Service 的核心价值在于它提供了两种粒度的 DNS 解析：Service域名（用于发现）和Pod域名（用于身份识别），前者可以用来做客户端侧负载均衡，后者用来为每个Pod提供稳定的身份，用于在有状态服务中Pod之间互相识别对等节点以稳定协同工作，即使Pod重建了，只要Pod名称没变，域名也不会变。举个MySQL主从节点的例子：
 
