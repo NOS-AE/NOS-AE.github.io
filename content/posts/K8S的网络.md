@@ -99,9 +99,9 @@ route add 10.244.1.0/24 via 192.168.1.101 dev flannel.1
 
 ## Service
 
-Service用于提供统一稳定的ip，并将流量负载均衡到Service所对应的一组Endpoints。
+Service 用于提供统一稳定的 ip，并将流量负载均衡到 Service 所对应的一组 Endpoints。
 
-结合上一节介绍的虚拟IP与kube-proxy，用一个最简单的 ClusterIP 类型的 Service 来入门：
+结合上一节介绍的虚拟 IP 与 kube-proxy，用一个最简单的 ClusterIP 类型的 Service 来入门：
 
 ```yaml
 apiVersion: v1
@@ -117,9 +117,9 @@ spec:
       targetPort: 9376
 ```
 
-首先控制面给这个 Service 分配一个集群 IP（虚拟IP），Service 控制器会不断检查是否有与 selector 匹配的 pods，并更新到 EndpointSlice 中。最后就是根据上面所说的，kube-proxy 检测到 Service 与 EndpointSlice 的更新，配置节点的 iptables。
+首先控制面给这个 Service 分配一个集群 IP（虚拟 IP），Service 控制器会不断检查是否有与 selector 匹配的 pods，并更新到 EndpointSlice 中。最后就是根据上面所说的，kube-proxy 检测到 Service 与 EndpointSlice 的更新，配置节点的 iptables。
 
-带selector的Service的backend一般就是Pod，但如果backend不是Pod，可能是集群外部的服务，那么可以使用不带selector的Service，没有selector的Service不会自动创建EndpointSlice，由自己来配置并创建EndpointSlice：
+带 selector 的 Service 的 backend 一般就是 Pod，但如果 backend 不是 Pod，可能是集群外部的服务，那么可以使用不带 selector 的 Service，没有 selector 的 Service 不会自动创建 EndpointSlice，由自己来配置并创建 EndpointSlice：
 
 ``` yaml
 apiVersion: v1
@@ -154,7 +154,7 @@ endpoints:
       - "10.1.2.3"
 ```
 
-Service支持多个端口到目标端口的映射：
+Service 支持多个端口到目标端口的映射：
 
 ``` yaml
 apiVersion: v1
@@ -175,11 +175,11 @@ spec:
       targetPort: 9377
 ```
 
-### Service的类型
+### Service 的类型
 
-之前我们默认使用的都是ClusterIP类型的Service，实际上Service一共有以下几种类型：
+之前我们默认使用的都是 ClusterIP 类型的 Service，实际上 Service 一共有以下几种类型：
 
-- ClusterIP：为Service分配一个仅在集群内可访问的虚拟IP，如果要暴露到公网需要在接一个Ingress或者Gateway
+- ClusterIP：为 Service 分配一个仅在集群内可访问的虚拟 IP，如果要暴露到公网需要在接一个 Ingress 或者 Gateway
 
   ``` yaml
   apiVersion: v1
@@ -203,7 +203,7 @@ spec:
   service-clusterip   ClusterIP   10.96.229.241   <none>        80/TCP    2m28s
   ```
 
-- NodePort：在ClusterIP的基础上，为每个node开放一个静态端口
+- NodePort：在 ClusterIP 的基础上，为每个 node 开放一个静态端口
 
   ``` yaml
   apiVersion: v1
@@ -228,9 +228,9 @@ spec:
   service-nodeport   NodePort   10.96.31.20   <none>        80:30007/TCP   2m46s
   ```
 
-- LoadBalancer：在Nodeport的基础上，自动创建一个云厂商提供的负载均衡器
+- LoadBalancer：在 Nodeport 的基础上，自动创建一个云厂商提供的负载均衡器
 
-- ExternalName：最特殊的类型，没有backend，不涉及代理和转发，仅仅是将请求重定向到一个外部的DNS名称。比如下面的配置，当访问`my-service.prod.svc.cluster.local`名称时，会返回一个CNAME记录，值为`my.database.example.com`
+- ExternalName：最特殊的类型，没有 backend，不涉及代理和转发，仅仅是将请求重定向到一个外部的 DNS 名称。比如下面的配置，当访问 `my-service.prod.svc.cluster.local` 名称时，会返回一个 CNAME 记录，值为 `my.database.example.com`
 
   ``` yaml
   apiVersion: v1
@@ -243,31 +243,31 @@ spec:
     externalName: my.database.example.com
   ```
 
-## 无头Service
+## 无头 Service
 
-普通的Service会分配一个ClusterIP，并负载均衡所有背后的Pod，旨在将多个无状态backend抽象为统一的入口。但无头Service，不会分配ClusterIP、kube-proxy也不会处理（不生成任何 iptables/IPVS 规则、不做负载均衡），旨在将每个Pod的IP直接暴露出去，让应用层来决定如何连接。
+普通的 Service 会分配一个 ClusterIP，并负载均衡所有背后的 Pod，旨在将多个无状态 backend 抽象为统一的入口。但无头 Service，不会分配 ClusterIP、kube-proxy 也不会处理（不生成任何 iptables/IPVS 规则、不做负载均衡），旨在将每个 Pod 的 IP 直接暴露出去，让应用层来决定如何连接。
 
-创建无头Service只需要将ClusterIP类型的Service的`.spec.clusterIP`指定为`None`：
+创建无头 Service 只需要将 ClusterIP 类型的 Service 的 `.spec.clusterIP` 指定为 `None`：
 
 ``` yaml
 spec:
   clusterIP: None
 ```
 
-**无头Service暴露的Pod IP方式是集群DNS。**
+**无头 Service 暴露的 Pod IP 方式是集群 DNS。**
 
-其实对于普通Service来说，也会涉及到DNS，DNS会创建一个Service的完全限定域名（FQDN，Fully Qualified Domain Name），命令为`<service-name>.<namespace>.svc.cluster.local`，其有一条值为ClusterIP的A记录。
+其实对于普通 Service 来说，也会涉及到 DNS，DNS 会创建一个 Service 的完全限定域名（FQDN，Fully Qualified Domain Name），命令为 `<service-name>.<namespace>.svc.cluster.local`，其有一条值为 ClusterIP 的 A 记录。
 
-无头Service的完全限定域名下则包含了n条A记录（ n为backend Pod的数量），值分别为每个Pod的IP，并且还会为每个Pod创建单独完全限定域名，命名为`<pod-name>.<service-name>.<namespace>.svc.cluster.local`，每个域名下包含值为该Pod的IP的A记录。 
+无头 Service 的完全限定域名下则包含了 n 条 A 记录（ n 为 backend Pod 的数量），值分别为每个 Pod 的 IP，并且还会为每个 Pod 创建单独完全限定域名，命名为 `<pod-name>.<service-name>.<namespace>.svc.cluster.local`，每个域名下包含值为该 Pod 的 IP 的 A 记录。 
 
-因此，无头 Service 的核心价值在于它提供了两种粒度的 DNS 解析：Service域名（用于发现）和Pod域名（用于身份识别），前者可以用来做客户端侧负载均衡，后者用来为每个Pod提供稳定的身份，用于在有状态服务中Pod之间互相识别对等节点以稳定协同工作，即使Pod重建了，只要Pod名称没变，域名也不会变。举个MySQL主从节点的例子：
+因此，无头 Service 的核心价值在于它提供了两种粒度的 DNS 解析：Service 域名（用于发现）和 Pod 域名（用于身份识别），前者可以用来做客户端侧负载均衡，后者用来为每个 Pod 提供稳定的身份，用于在有状态服务中 Pod 之间互相识别对等节点以稳定协同工作，即使 Pod 重建了，只要 Pod 名称没变，域名也不会变。举个 MySQL 主从节点的例子：
 
 | **环节**      | **动作描述**                                                 | **无头 Service 的作用**                                      |
 | ------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| 集群初始化    | `mysql-1` 需要知道主节点 `mysql-0` 的**稳定地址**来进行复制配置。 | `mysql-1` 通过解析 `mysql-0.mysql-headless.default.svc.cluster.local` 稳定地找到主节点的 IP，建立复制连接。 |
+| 集群初始化    | `mysql-1` 需要知道主节点 `mysql-0` 的 **稳定地址** 来进行复制配置。 | `mysql-1` 通过解析 `mysql-0.mysql-headless.default.svc.cluster.local` 稳定地找到主节点的 IP，建立复制连接。 |
 | 内部访问      | 应用客户端需要读写数据，并将连接分散到主从节点。             | 客户端可以查询 `mysql-headless`，获取所有 Pod IP 列表，然后根据自身的逻辑（例如，写操作连主节点 IP，读操作连从节点 IP）进行客户端侧的连接管理。 |
 | 节点故障/重启 | `mysql-0` Pod 发生故障，被 K8s 重新调度。                    | 即使 Pod IP 变了，它的稳定域名 `mysql-0.mysql-headless` 仍然解析到新的 IP 地址，复制关系和配置无需手动修改。 |
 
 ## DNS
 
-关于上面提到的集群DNS，更详细的内容参考<https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/>
+关于上面提到的集群 DNS，更详细的内容参考 <https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/>
