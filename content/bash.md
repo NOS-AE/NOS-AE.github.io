@@ -28,7 +28,7 @@ echo "$var"
 # 按名称查找文件
 find /path/to/search -name "filename"
 
-# 按类型查找（f=文件，d=目录）
+# 按类型查找（f = 文件，d = 目录）
 find /path/to/search -type f -name "*.txt"
 
 # 查找并删除
@@ -66,7 +66,7 @@ chown user:group file.txt
 
 ### 清空文件内容
 
-`:`是一个内置的 Shell 命令，被称为 **空命令 (No-op)**。它什么也不做，但会返回成功的退出状态 (0)，将其输出（实际上什么也没有）重定向到文件，相当于把文件清空了。
+`:` 是一个内置的 Shell 命令，被称为 **空命令 (No-op)**。它什么也不做，但会返回成功的退出状态 (0)，将其输出（实际上什么也没有）重定向到文件，相当于把文件清空了。
 
 ``` bash
 :>somefile
@@ -76,7 +76,7 @@ chown user:group file.txt
 
 https://linuxize.com/post/bash-heredoc/
 
-heredoc用于直接在命令行输入多行文本，并将其输入给命令
+heredoc 用于直接在命令行输入多行文本，并将其输入给命令
 
 ``` shell
 # 一般形式
@@ -215,18 +215,18 @@ ifconfig
 
 ## Git
 
-> 在 Git 的设计中，有一个非常经典的概念区分：**“porcelain（瓷器）命令”** 和 **“plumbing（管道）命令”**。这其实反映了 Git 的**两层结构设计**——底层“管道层”（plumbing）与上层“用户界面层”（porcelain）。
+> 在 Git 的设计中，有一个非常经典的概念区分：**“porcelain（瓷器）命令”** 和 **“plumbing（管道）命令”**。这其实反映了 Git 的 **两层结构设计**——底层“管道层”（plumbing）与上层“用户界面层”（porcelain）。
 >
 > **plumbing commands**（底层命令）
 >
-> - 面向**脚本、工具和 Git 自身内部机制**。
+> - 面向 **脚本、工具和 Git 自身内部机制**。
 > - 接口稳定、输出简洁（方便机器读取）。
 > - 不负责美观输出，也不提供复杂逻辑。
 > - 主要用于直接操作 Git 对象（blob、tree、commit、tag）。
 >
 > **porcelain commands**（高层命令）
 >
-> - 面向**普通用户**。
+> - 面向 **普通用户**。
 > - 提供易用的语法和丰富的输出。
 > - 通常内部会调用多个 plumbing 命令组合实现功能。
 >
@@ -411,7 +411,33 @@ kubectl proxy
 kubectl proxy --address='0.0.0.0' --accept-hosts='.*'
 ```
 
+### 端口转发
 
+用于临时端口转发的调试与访问工具，常用于在不暴露 Service（无需 NodePort / LoadBalancer / Ingress）的情况下，从本地直接访问集群内的 Pod 或 Service。
+
+``` bash
+# 转发pod端口，通过http://localhost:8080访问pod的80端口
+kubectl port-forward pod/nginx-abc123 8080:80
+
+# 转发service端口
+kubectl port-forward svc/my-service 8080:80
+```
+
+工作原理：
+
+```
+本地端口
+  ↓
+kubectl 进程
+  ↓（HTTP/2 SPDY / WebSocket）
+kube-apiserver
+  ↓
+kubelet
+  ↓
+Pod 内的目标端口
+```
+
+因此，kubectl 本身是代理，连接是通过 apiserver 建立的，不依赖 CNI 网络。
 
 ## 性能分析
 
