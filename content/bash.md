@@ -7,6 +7,21 @@ ShowToc: true
 TocOpen: true
 ---
 
+## sudo 的影响范围
+
+``` bash
+# sudo的影响范围只有 echo "hi"，而重定向是由当前shell执行的
+# 更进一步看原理，重定向是由当前shell执行open系统调用，即文件打开者的权限是当前shell而不是sudo
+# 可以看成是 (sudo echo "hi") > file
+sudo echo "hi" > file
+# 可以用下面的命令让echo "hi" > file成为整体
+# 可以看成是 sudo (echo "hi" > file)
+sudo -c 'echo "hi" > file'
+# 或者，仅针对该命令来说，可以用tee
+echo "hi" | sudo tee file
+echo "hi" | sudo tee file > /dev/null # 或者
+```
+
 ## 变量
 
 ### 变量展开
@@ -459,7 +474,20 @@ iftop
 nethogs
 ```
 
+### top 使用
+
+``` bash
+# 查看每个cpu核使用率
+1
+# 输出：
+# us用户态占用(nice=0) sy系统调用占用 ni用户态占用(nice>0) id空闲占用 waI/O阻塞占用 hi硬件中断占用 si软中断占用 st被虚拟化"偷走"的占用（id是没活干，st是有活干但是被分配给了其它虚拟机。st仅在虚拟机中有意义）
+%Cpu4  :100.0 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+```
+
+
+
 ### 日志分析
+
 ```bash
 # 实时查看日志
 tail -f /var/log/syslog
