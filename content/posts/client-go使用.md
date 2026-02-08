@@ -43,3 +43,6 @@ return hpav1client.Apply(ctx, hpaApplyConfig, metav1.ApplyOptions{FieldManager: 
 
 如果某个字段本身的 fieldmanager 是 mycontroller，但是如果此次你传入的 applyconfiguration 不包含该字段，虽然这个资源对象的字段值不会改变，但其 fieldmanager 会被删除
 
+## 参考
+
+https://kubernetes.io/docs/reference/using-api/api-concepts/#patch-and-apply

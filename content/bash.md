@@ -10,12 +10,10 @@ TocOpen: true
 ## sudo 的影响范围
 
 ``` bash
-# sudo的影响范围只有 echo "hi"，而重定向是由当前shell执行的
-# 更进一步看原理，重定向是由当前shell执行open系统调用，即文件打开者的权限是当前shell而不是sudo
-# 可以看成是 (sudo echo "hi") > file
+# 下面这条命令sudo的影响范围只有 echo "hi"，而重定向是由当前shell执行的
+# 从原理来看，重定向是由当前shell执行open系统调用，即文件打开者的权限是当前shell而不是sudo
 sudo echo "hi" > file
-# 可以用下面的命令让echo "hi" > file成为整体
-# 可以看成是 sudo (echo "hi" > file)
+# 可以用下面的命令让echo "hi" > file成为整体，这样，重定向也是在sudo的权限下完成的
 sudo -c 'echo "hi" > file'
 # 或者，仅针对该命令来说，可以用tee
 echo "hi" | sudo tee file
