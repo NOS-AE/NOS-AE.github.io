@@ -1,6 +1,6 @@
 ---
 date: 2026-02-18T18:20:14+08:00
-title: Iptables
+title: iptables入门
 tags: [网络,iptables]
 categories: [网络]
 draft: false
