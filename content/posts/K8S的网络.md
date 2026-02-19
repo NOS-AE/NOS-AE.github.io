@@ -32,14 +32,14 @@ kube-proxy 不做实际的包转发，而是根据从 apiserver 监听 Service �
 
 下面以 iptables 模式的 kube-proxy + clusterIP Service 为例，说明从 Service 创建到一个请求打到 pod 上是如何发生的。
 
-首先创建 Service，控制面为其分配了一个虚拟 IP 10.0.0.1，端口为 1234，此时所有节点上的 kube-proxy 监听到这个 Service 的创建。
+首先创建 Service，控制面为其分配了一个虚拟 IP 10.96.0.123，端口为 1234，此时所有节点上的 kube-proxy 监听到这个 Service 的创建。
 
 随后每个节点的 kube-proxy 会在节点上创建相同的 iptables 规则，主要分为三条 iptables 链（在节点上使用 `iptables-save -t nat` 可以查看）：
 
 1. KUBE-SERVICES 链：匹配 Service 的虚拟 IP 端口
 
    ``` bash
-   -A KUBE-SERVICES -d 10.96.0.123/32 -p tcp --dport 80 -j KUBE-SVC-XXXX
+   -A KUBE-SERVICES -d 10.96.0.123/32 -p tcp --dport 1234 -j KUBE-SVC-XXXX
    ```
 
 2. KUBE-SVC-xxx 链：包含多个后端 pod 后端链，进入该链的流量，会被随机或轮询转发到其中一个 Pod 的 KUBE-SEP 链

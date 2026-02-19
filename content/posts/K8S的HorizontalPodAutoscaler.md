@@ -12,7 +12,7 @@ K8S 的 HorizontalPodautoscaler（HPA）用于根据实际负载，动态地调�
 
 <img src="https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/image-20260217172934965.png" alt="image-20260217172934965" style="zoom:50%;" />
 
-一个实际的例子可以参考：https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+一个实际的例子可以参考：<https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/>
 
 HPA 的工作流程是：
 
