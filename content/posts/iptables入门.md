@@ -41,20 +41,20 @@ Linux 内核在 IP 协议栈关键位置定义了五个 hook，对应五个“�
 
 并不是每一个“表”都存在于每一个“链”中。它们的关系就像是一张矩阵图，每个交叉点代表一个具体的处理时机。
 
-| **链 (Chains) \ 表 (Tables)** | **Raw** | **Mangle** | **NAT (DNAT)** | **Filter** | **NAT (SNAT)** |
-| ----------------------------- | ------- | ---------- | -------------- | ---------- | -------------- |
-| **PREROUTING**                | ✅       | ✅          | ✅              |            |                |
-| **INPUT**                     |         | ✅          |                | ✅          |                |
-| **FORWARD**                   |         | ✅          |                | ✅          |                |
-| **OUTPUT**                    | ✅       | ✅          | ✅              | ✅          |                |
-| **POSTROUTING**               |         | ✅          |                |            | ✅              |
+| 链 (Chains) \ 表 (Tables) | Raw  | Mangle | Filter | NAT  |
+| ------------------------- | ---- | ------ | ------ | ---- |
+| PREROUTING                | ✅    | ✅      |        | ✅    |
+| INPUT                     |      | ✅      | ✅      |      |
+| FORWARD                   |      | ✅      | ✅      |      |
+| OUTPUT                    | ✅    | ✅      | ✅      | ✅    |
+| POSTROUTING               |      | ✅      |        | ✅    |
 
 当一个数据包经过你的机器时，它会按以下顺序穿越这些表和链：
 
 1. 入站数据包（目的地是本机）
 
    ```
-    PREROUTING (Raw -> Mangle -> NAT) -> [路由决策] -> INPUT (Mangle -> Filter) -> [进入进程]
+   PREROUTING (Raw -> Mangle -> NAT) -> [路由决策] -> INPUT (Mangle -> Filter) -> [进入进程]
    ```
 
 2. 转发数据包（路过本机）
