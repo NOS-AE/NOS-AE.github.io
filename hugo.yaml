@@ -217,6 +217,7 @@ frontmatter:
   date:
     - :filename
     - :default
+  titleCaseStyle: none
 
 caches:
   images:
