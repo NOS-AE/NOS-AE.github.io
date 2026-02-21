@@ -109,9 +109,8 @@ def parse_markdown_file(file_path):
         sys.exit(1)
 
     categories.append('[Markdown]')
-    # 去除frontmatters并添加原文博客
-    second_dash_index = post_content.find('---', 1)
-    post_content = f"\n\n> 原文博客：https://nosae.top\n\n" + post_content[second_dash_index + 3:]
+    # 添加原文博客链接
+    post_content = f"\n\n> 原文博客：https://nosae.top\n\n" + post_content
     return {
         'title': title,
         'categories': categories,
@@ -136,7 +135,7 @@ def sync_to_cnblogs(file_path, config):
     if post_data['categories']:
         post["categories"] = post_data['categories']
     if post_data['tags']:
-        post["mt_keywords"] = 'kafka,mq,源码'  # post_data['tags']
+        post["mt_keywords"] = post_data['tags']
 
     # 检查是否存在相同标题的文章
     existing_post_id = client.find_post_by_title(post_data['title'])
