@@ -71,7 +71,6 @@ jobs:
       uses: tj-actions/changed-files@v39
       with:
         quotepath: "false"
-        separator: '\n'
         files: |
           content/posts/**.md
         # 在 push 事件或手动触发且选择 changed 模式时获取变更
@@ -81,17 +80,14 @@ jobs:
       run: |
         # 判断是手动触发还是 push 触发
         if [[ "${{ github.event_name }}" == "push" ]]; then
-          # push 事件：同步变更的文件
-          ALL_CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
-          echo "Push event - Changed files:"
-          echo "$ALL_CHANGED_FILES"
-          echo "---"
-          while IFS= read -r file; do
-            if [[ $file == *.md ]]; then
+          # push 事件：使用 git 命令获取变更的文件
+          echo "Push event - Getting changed files..."
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'content/posts/*.md' | while IFS= read -r file; do
+            if [[ -n "$file" ]]; then
               echo "Syncing $file..."
               python scripts/sync-blog/main.py "$file"
             fi
-          done <<< "$ALL_CHANGED_FILES"
+          done
         else
           # 手动触发：根据选择的模式同步
           SYNC_MODE="${{ github.event.inputs.sync_mode }}"
@@ -104,16 +100,15 @@ jobs:
               python scripts/sync-blog/main.py "$file"
             done
           elif [[ "$SYNC_MODE" == "changed" ]]; then
-            ALL_CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
-            echo "Changed files:"
-            echo "$ALL_CHANGED_FILES"
-            echo "---"
-            while IFS= read -r file; do
-              if [[ $file == *.md ]]; then
+            echo "Changed files mode - Getting changed files..."
+            # 获取最近一次 push 的变更文件
+            git diff --name-only HEAD~1 HEAD -- 'content/posts/*.md' 2>/dev/null || \
+            git diff --name-only origin/main...HEAD -- 'content/posts/*.md' 2>/dev/null | while IFS= read -r file; do
+              if [[ -n "$file" ]]; then
                 echo "Syncing $file..."
                 python scripts/sync-blog/main.py "$file"
               fi
-            done <<< "$ALL_CHANGED_FILES"
+            done
           elif [[ "$SYNC_MODE" == "custom" ]]; then
             CUSTOM_FILES="${{ github.event.inputs.custom_files }}"
             echo "Custom files: ${CUSTOM_FILES}"
