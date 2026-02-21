@@ -432,5 +432,3 @@ case NonExistentReplica =>
   }
 ```
 
-
-
