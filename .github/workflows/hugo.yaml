@@ -69,43 +69,61 @@ jobs:
     - name: Get changed files
       id: changed-files
       uses: tj-actions/changed-files@v39
-      if: github.event.inputs.sync_mode == 'changed'
       with:
         quotepath: "false"
         files: |
           content/posts/**.md
+        # 在 push 事件或手动触发且选择 changed 模式时获取变更
+        # 手动触发时会获取最后一次 push 的变更文件
 
     - name: Sync files
       run: |
-        if [[ "${{ github.event.inputs.sync_mode }}" == "all" ]]; then
-          echo "Syncing all posts..."
-          find content/posts -name "*.md" | while IFS= read -r file; do
-            echo "Syncing $file..."
-            python scripts/sync-blog/main.py "$file"
-          done
-        elif [[ "${{ github.event.inputs.sync_mode }}" == "changed" ]]; then
+        # 判断是手动触发还是 push 触发
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          # push 事件：同步变更的文件
           ALL_CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
-          echo "Changed files: ${ALL_CHANGED_FILES}"
+          echo "Push event - Changed files: ${ALL_CHANGED_FILES}"
           while IFS= read -r file; do
             if [[ $file == *.md ]]; then
               echo "Syncing $file..."
               python scripts/sync-blog/main.py "$file"
             fi
           done <<< "$ALL_CHANGED_FILES"
-        elif [[ "${{ github.event.inputs.sync_mode }}" == "custom" ]]; then
-          CUSTOM_FILES="${{ github.event.inputs.custom_files }}"
-          echo "Custom files: ${CUSTOM_FILES}"
-          if [[ -n "$CUSTOM_FILES" ]]; then
-            IFS=',' read -ra files <<< "$CUSTOM_FILES"
-            for file in "${files[@]}"; do
-              file=$(echo "$file" | xargs)  # 去除首尾空格
-              if [[ -n "$file" ]]; then
+        else
+          # 手动触发：根据选择的模式同步
+          SYNC_MODE="${{ github.event.inputs.sync_mode }}"
+          echo "Manual trigger - Mode: ${SYNC_MODE}"
+
+          if [[ "$SYNC_MODE" == "all" ]]; then
+            echo "Syncing all posts..."
+            find content/posts -name "*.md" | while IFS= read -r file; do
+              echo "Syncing $file..."
+              python scripts/sync-blog/main.py "$file"
+            done
+          elif [[ "$SYNC_MODE" == "changed" ]]; then
+            ALL_CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
+            echo "Changed files: ${ALL_CHANGED_FILES}"
+            while IFS= read -r file; do
+              if [[ $file == *.md ]]; then
                 echo "Syncing $file..."
                 python scripts/sync-blog/main.py "$file"
               fi
-            done
-          else
-            echo "Error: custom_files is empty"
+            done <<< "$ALL_CHANGED_FILES"
+          elif [[ "$SYNC_MODE" == "custom" ]]; then
+            CUSTOM_FILES="${{ github.event.inputs.custom_files }}"
+            echo "Custom files: ${CUSTOM_FILES}"
+            if [[ -n "$CUSTOM_FILES" ]]; then
+              IFS=',' read -ra files <<< "$CUSTOM_FILES"
+              for file in "${files[@]}"; do
+                file=$(echo "$file" | xargs)  # 去除首尾空格
+                if [[ -n "$file" ]]; then
+                  echo "Syncing $file..."
+                  python scripts/sync-blog/main.py "$file"
+                fi
+              done
+            else
+              echo "Error: custom_files is empty"
+            fi
           fi
         fi 
 
