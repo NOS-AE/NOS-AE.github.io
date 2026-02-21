@@ -1,6 +1,7 @@
 import xmlrpc.client
 import re
 import sys
+import os
 
 class CnblogsClient:
     def __init__(self, config):
@@ -61,6 +62,36 @@ def process_content(content):
     # 替换为单个 >
     return re.sub(pattern, '>', content)
 
+def generate_permalink(file_path):
+    """根据文件名生成原文链接，遵循 Hugo 的 urlize 规则"""
+    filename = os.path.basename(file_path).replace('.md', '')
+
+    # 去除日期前缀 (格式: YYYY-MM-DD-)
+    filename = re.sub(r'^\d{4}-\d{2}-\d{2}-', '', filename)
+
+    # Hugo urlize 规则：
+    # 1. 替换空格为连字符
+    filename = filename.replace(' ', '-')
+
+    # 2. 去除中文标点符号
+    chinese_punctuation = '，。！？、；：""''（）【】《》「」『』—…·'
+    for char in chinese_punctuation:
+        filename = filename.replace(char, '')
+
+    # 3. 去除英文标点符号（保留连字符）
+    filename = re.sub(r'[!"#$%&\'*+./;<=>?@[\\\]^_`{|}~]', '', filename)
+
+    # 4. 转换为小写
+    filename = filename.lower()
+
+    # 5. 将多个连续的连字符替换为单个
+    filename = re.sub(r'-+', '-', filename)
+
+    # 6. 去除首尾的连字符
+    filename = filename.strip('-')
+
+    return f"https://nosae.top/posts/{filename}"
+
 def parse_markdown_file(file_path):
     """解析Markdown文件"""
     try:
@@ -110,7 +141,8 @@ def parse_markdown_file(file_path):
 
     categories.append('[Markdown]')
     # 添加原文博客链接
-    post_content = f"\n\n> 原文博客：https://nosae.top\n\n" + post_content
+    permalink = generate_permalink(file_path)
+    post_content = f"\n\n> 原文博客：{permalink}\n\n" + post_content
     return {
         'title': title,
         'categories': categories,

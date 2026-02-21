@@ -20,8 +20,9 @@ on:
           - all      # 同步所有文章
           - custom   # 自定义文件路径
       custom_files:
-        description: '自定义文件路径（每行一个文件路径，custom模式有效）'
+        description: '自定义文件路径（多文件用逗号分隔，custom模式有效）'
         required: false
+        default: ''
         type: string
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -94,10 +95,18 @@ jobs:
         elif [[ "${{ github.event.inputs.sync_mode }}" == "custom" ]]; then
           CUSTOM_FILES="${{ github.event.inputs.custom_files }}"
           echo "Custom files: ${CUSTOM_FILES}"
-          while IFS= read -r file; do
-            echo "Syncing $file..."
-            python scripts/sync-blog/main.py "$file"
-          done <<< "$CUSTOM_FILES"
+          if [[ -n "$CUSTOM_FILES" ]]; then
+            IFS=',' read -ra files <<< "$CUSTOM_FILES"
+            for file in "${files[@]}"; do
+              file=$(echo "$file" | xargs)  # 去除首尾空格
+              if [[ -n "$file" ]]; then
+                echo "Syncing $file..."
+                python scripts/sync-blog/main.py "$file"
+              fi
+            done
+          else
+            echo "Error: custom_files is empty"
+          fi
         fi 
 
   # Build job
