@@ -65,32 +65,42 @@ def process_content(content):
 def generate_permalink(file_path):
     """根据文件名生成原文链接，遵循 Hugo 的 urlize 规则"""
     filename = os.path.basename(file_path).replace('.md', '')
+    print(f"[DEBUG] Original filename: {filename}")
 
     # 去除日期前缀 (格式: YYYY-MM-DD-)
     filename = re.sub(r'^\d{4}-\d{2}-\d{2}-', '', filename)
+    print(f"[DEBUG] After removing date: {filename}")
 
     # Hugo urlize 规则：
     # 1. 替换空格为连字符
     filename = filename.replace(' ', '-')
+    print(f"[DEBUG] After replacing spaces: {filename}")
 
     # 2. 去除中文标点符号
     chinese_punctuation = '，。！？、；：""''（）【】《》「」『』—…·'
     for char in chinese_punctuation:
         filename = filename.replace(char, '')
+    print(f"[DEBUG] After removing Chinese punctuation: {filename}")
 
     # 3. 去除英文标点符号（保留连字符）
     filename = re.sub(r'[!"#$%&\'*+./;<=>?@[\\\]^_`{|}~]', '', filename)
+    print(f"[DEBUG] After removing English punctuation: {filename}")
 
     # 4. 转换为小写
     filename = filename.lower()
+    print(f"[DEBUG] After lowercase: {filename}")
 
     # 5. 将多个连续的连字符替换为单个
     filename = re.sub(r'-+', '-', filename)
+    print(f"[DEBUG] After merging hyphens: {filename}")
 
     # 6. 去除首尾的连字符
     filename = filename.strip('-')
+    print(f"[DEBUG] Final filename: {filename}")
 
-    return f"https://nosae.top/posts/{filename}"
+    permalink = f"https://nosae.top/posts/{filename}"
+    print(f"[DEBUG] Permalink: {permalink}")
+    return permalink
 
 def parse_markdown_file(file_path):
     """解析Markdown文件"""

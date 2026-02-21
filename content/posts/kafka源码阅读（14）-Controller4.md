@@ -3,7 +3,7 @@ date: 2025-07-20T17:23:24+08:00
 title: Kafka源码阅读（14）-Controller之副本状态机ReplicaStateMachine
 categories: [源码阅读,kafka]
 tags: [kafka,mq,源码]
-draft: true
+draft: false
 ---
 
 > [!note]
