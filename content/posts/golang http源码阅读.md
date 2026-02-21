@@ -323,3 +323,5 @@ func (p *ReverseProxy) handleUpgradeResponse(rw http.ResponseWriter, req *http.R
 
 **劫持**的意思是，本来`http.ResponseWriter`是golang的http库来管控的，给你暴露了一些方法比如`Write`、`WriterHeader`等，让你很方便地给客户端发送http格式的数据，而无需关心http格式的数据应当如何组织（比如加入Content-Length或其他 HTTP 头）。当ResponseWriter被劫持之后，golang的http库把这个连接交给了调用方，并且不会再向它底层连接发送数据，由调用方去调用Write方法发送数据。此后，往里面写的数据都是原始字节数据。
 
+
+
