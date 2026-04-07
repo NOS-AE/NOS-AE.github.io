@@ -1,0 +1,33 @@
+<!-- Fancybox JS -->
+<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
+<script>
+  // 绑定 markdown 格式的图片（已有 data-fancybox="gallery"）
+  Fancybox.bind('[data-fancybox="gallery"]', {
+    // Your custom options
+  });
+
+  // 给裸 <img> 标签添加 data-fancybox 属性，让它们也进入 gallery
+  // 排除已经被 <a data-fancybox="gallery"> 包裹的图片（即 markdown 格式的图片）
+  var selectors = [
+    '.post-content img:not([data-fancybox])',
+    '.entry-content img:not([data-fancybox])',
+    '#post-single img:not([data-fancybox])',
+    'article img:not([data-fancybox])'
+  ];
+  selectors.forEach(function (sel) {
+    document.querySelectorAll(sel).forEach(function (img) {
+      // 检查图片是否已经在 <a data-fancybox="gallery"> 中
+      var parent = img.parentElement;
+      if (parent && parent.tagName === 'A' && parent.getAttribute('data-fancybox') === 'gallery') {
+        return;
+      }
+      // 给裸 img 标签包裹 <a> 标签，使其支持 fancybox gallery
+      var link = document.createElement('a');
+      link.setAttribute('href', img.src);
+      link.setAttribute('data-fancybox', 'gallery');
+      link.setAttribute('data-caption', img.alt || '');
+      img.parentNode.insertBefore(link, img);
+      link.appendChild(img);
+    });
+  });
+</script>
