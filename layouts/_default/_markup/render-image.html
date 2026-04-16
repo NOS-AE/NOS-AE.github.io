@@ -13,7 +13,7 @@
   {{- end -}}
 {{- end -}}
 {{- $attributes := merge .Attributes (dict "alt" .Text "src" $src "title" (.Title | transform.HTMLEscape) "loading" "lazy") -}}
-<a href="{{ $src }}" data-fancybox="gallery">
+<a href="{{ $src }}" data-fancybox="gallery" data-caption="{{ .Text }}">
   <img
     {{- range $k, $v := $attributes -}}
       {{- if $v -}}
