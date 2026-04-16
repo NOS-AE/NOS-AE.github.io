@@ -458,7 +458,7 @@ type controller struct {
 }
 ```
 
-**但是这里的 Controller 并不是指用户层面的那个控制器，对照上方的架构图来说，这里的 Controller 对应于架构图中的 Informer 组件，属于图中上方 client-go 的那层。因此，我觉得代码里的 Controller 应该命名为 Informer 猜对，同样地 controller 应该命名为 informer。**
+**但是这里的 Controller 并不是指用户层面的那个控制器，对照上方的架构图来说，这里的 Controller 对应于架构图中的 Informer 组件，属于图中上方 client-go 的那层。因此，我觉得代码里的 Controller 应该命名为 Informer 才对，同样地 controller 应该命名为 informer。**
 
 controller 的运行逻辑很简单，就是启动 reflector 然后运行 processLoop 不断地消费 DeltaFIFO 中的资源事件。
 

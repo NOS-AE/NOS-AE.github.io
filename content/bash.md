@@ -172,6 +172,15 @@ awk '$3 > 100 {print $1}' file.txt
 awk '{sum += $1} END {print sum}' file.txt
 ```
 
+### find + grep（在目录的文件中查找文本）
+
+``` bash
+# find -print0 指的是使用\0空字符来连接文件名
+# xargs -0 指的是将输入用\0空字符进行分割
+# 这样可以避免文件名带空格的情况导致grep找不到文件
+find . -type f -print 0 | xargs -0 grep xxx
+```
+
 ## 系统管理
 
 ### 进程管理
