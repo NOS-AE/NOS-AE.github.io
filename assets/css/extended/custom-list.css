@@ -1,0 +1,60 @@
+/* Custom ordered list styles with circle markers */
+
+.post-content ol {
+    list-style: none;
+    padding-inline-start: 0;
+    counter-reset: custom-counter;
+}
+
+.post-content ol li {
+    position: relative;
+    padding-left: 32px;
+    margin-top: 12px;
+    counter-increment: custom-counter;
+}
+
+.post-content ol li::before {
+    content: counter(custom-counter);
+    position: absolute;
+    left: 0;
+    top: 0.16em;
+    width: 22px;
+    height: 22px;
+    background-color: var(--tertiary);
+    color: var(--secondary);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Nested ordered lists */
+.post-content ol ol {
+    margin-top: 8px;
+}
+
+.post-content ol ol li {
+    padding-left: 28px;
+}
+
+.post-content ol ol li::before {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    top: 0.4em;
+    background-color: var(--code-bg);
+}
+
+/* Dark mode adjustments */
+.dark .post-content ol li::before {
+    background-color: var(--tertiary);
+    color: var(--secondary);
+}
+
+.dark .post-content ol ol li::before {
+    top: 0.4em;
+    background-color: var(--entry);
+}
