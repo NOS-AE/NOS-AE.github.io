@@ -635,6 +635,134 @@ q_I,
 $$
 后续过程与上述一样，不在赘述。
 
+## 译者续篇 —— 推理之 Prefill-Decode
+
+原始的 Transformer 需要 Encoder 加 Decoder。但是 GPT、LLaMA、Claude 这一类大模型却只需要保留 Decoder。
+
+首先，Attention is all you need 的任务是机器翻译。例如输入：
+
+```
+我爱猫
+```
+
+输出：
+
+```
+I love cats
+```
+
+这是一个典型的输入序列转换到输出序列，也叫 Seq2Seq。Encoder 负责理解输入。当 Encoder 看到“我爱猫”的时候，它的任务是把中文转换成一个包含语义的表示 $H_{enc}$
+
+当 Decoder 要生成输出的时候，它需要看到自己已经生成的内容，以及查询 Encoder 的理解结果。这就是为什么之前有 Decoder Self-Attention，还有 Encoder-Decoder Attention。
+
+那 Decoder Only LM 为什么不要 Encoder？因为 GPT 改变了任务定义，它不再做输入序列转换成输出序列，而是用来预测下一个 Token。所有的任务本质上都是根据已有文本继续生成。
+
+最容易困惑的地方就是，之前 Encoder 不是负责理解输入吗？那没有 Encoder 的话，GPT 怎么理解问题？答案是 Decoder Only 把 Encoder 的功能融合进了 Decoder 的 Self Attention。
+
+你还可能会问，GPT 也能翻译，那为什么它不用 Encoder？需要注意的是，你在输入 GPT 的 Prompt 中，你肯定会说让它把某一段文本翻译一下，所以核心在于，这是你让它翻译的。而论文中的 Transformer 是专门用来做翻译的，你不需要输入类似“翻译下面这段文本”等 prompt。
+
+由于没有了 Encoder，所以 Decoder 里面也去掉了 Cross Attention。下面就来看一看，Decoder Only 架构是如何预测下一个词的。
+
+假设用户输入：
+
+```
+解释 Transformer
+```
+
+Tokenization 后得到：
+
+```
+[101, 532, 874, 23]
+```
+
+Embedding + 位置编码后得到（假设 Embedding 向量长度为 4096。）：
+
+```
+[
+[4096 维...],
+[4096 维],
+[4096 维],
+[4096 维],
+]
+```
+
+假设这里只输入一个句子，并且这个句子的长度就是 4。所以输入的矩阵形状就是：
+$$
+[1,4,4096]
+$$
+虽然 GPT 是 Decoder Only，但其实也分为两个阶段，第一个阶段是 Prefill，第二个阶段是 Decode。Prefill 是用来产生 KV Cache 的，所有的输入 Token 一起计算得到各个 Token 的 Q、K、V：
+$$
+Q, K, V
+\in R^{1\times4\times4096}
+$$
+然后计算 QK 分数，并加上 Causal Mask：
+$$
+QK^T+M
+$$
+然后拿结果去跟 V 矩阵进行最后的 Attention 计算，得到结果矩阵：
+$$
+O\in R^{1\times4\times4096}
+$$
+所以我们可以发现，输入的形状和输出的形状是一样的。假设模型有 32 层 Decoder，那么：
+
+``` 
+[1,4,4096]
+
+Layer 1
+
+[1,4,4096]
+
+Layer 2
+
+[1,4,4096]
+
+...
+
+Layer 32
+
+[1,4,4096]
+```
+
+即最后一层 Decoder 输出的矩阵形状是：
+$$
+H\in R^{1\times4\times4096}
+$$
+但这还不是最终的结果，这只是模型内部的隐藏空间。还需要一个 LM Head，将隐藏空间翻译回词表空间。假设词表大小为 50000，那么：
+$$
+W_{lm}
+\in
+R^{4096\times50000}
+$$
+得到：
+$$
+Logits \in R^{1 \times 4 \times 50000}
+$$
+再经过 softmax 得到每个词的概率，采样得到 first token。
+
+注意，logits 第二维的含义：
+
+```
+position0:
+下一个token概率
+
+position1:
+下一个token概率
+
+position2:
+下一个token概率
+
+position3:
+下一个token概率
+```
+
+但是我们真正需要的是：
+
+> 整个 prompt 后面应该生成什么？
+
+所以只取最后的 `logits[:, -1, :]`，得到 `[1, V]`。
+
+上述的就是 Prefill 的过程，那下面再来看一下 Decode。相比 Prefill 一次把所有词都输入到模型中，Decode 只需要输入上一个生成的词，然后在 Self Attention 的计算过程中，直接使用新的 Q 来查询之前的 KV Cache。
+
 ## 参考
 
 [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
