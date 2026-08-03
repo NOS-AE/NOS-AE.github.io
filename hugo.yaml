@@ -162,7 +162,7 @@ params:
     lang: "zh-CN"
     crossorigin: "anonymous"
   
-  math: false
+  math: true
 
 markup:
   goldmark:
@@ -175,9 +175,13 @@ markup:
       passthrough:
         delimiters:
           block:
+          - - \[
+            - \]
           - - $$
             - $$
           inline:
+          - - \(
+            - \)
           - - $
             - $
         enable: true

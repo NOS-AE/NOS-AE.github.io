@@ -1,0 +1,9 @@
+{{- $inner := .Inner -}}
+{{- if eq .Type "block" -}}
+  {{- $inner = replaceRE `(?m)^> ?` "" $inner -}}
+  <div class="math-block">\[
+    {{- $inner -}}
+  \]</div>
+{{- else -}}
+  \({{- $inner -}}\)
+{{- end -}}

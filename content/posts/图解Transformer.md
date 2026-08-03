@@ -237,7 +237,10 @@ $$
 >
 > 如果隐藏维度为 $d_{\text{model}}=512$，那么一个位置向量大致是：
 >
-> $ p_{pos} = [ \sin(\omega_0pos), \cos(\omega_0pos), \sin(\omega_1pos), \cos(\omega_1pos), \dots ] $
+> $$
+> p_{pos}= [ \sin(\omega_0pos), \cos(\omega_0pos), \sin(\omega_1pos), \cos(\omega_1pos), \dots ]
+> $$
+> 
 >
 > 对于上述这个 $p_{pos}$ 的表达式，我们知道 sin 和 cos 都是周期函数，将 $w$ 看作常量，$pos$ 看作自变量，那么当 $w$ 越大，正弦/余弦波的频率就越大，即变化越快。因此 $p_{pos}$ 的第 1 维变化频率最大，第 2 维其次....以此类推。但这样有什么用呢？
 >
@@ -265,8 +268,7 @@ $$
 >
 > 位置移动 $k$ 后：
 > $$
-> p_{pos+k}
-> =
+> p_{pos+k} =
 > \begin{bmatrix}
 > \sin(\omega(pos+k))\\
 > \cos(\omega(pos+k))
@@ -280,8 +282,7 @@ $$
 > $$
 > 因此
 > $$
-> p_{pos+k}
-> =
+> p_{pos+k} =
 > \begin{bmatrix}
 > \cos(\omega k)&\sin(\omega k)\\
 > -\sin(\omega k)&\cos(\omega k)
@@ -294,13 +295,14 @@ $$
 >
 > 加入位置编码后：
 > $$
->  h_i = x_i+p_i
+> h_i = x_i+p_i
 > $$
 > 于是：
 > $$
-> q_i =(x_i+p_i)W_Q
-> \\
-> k_j =(x_j+p_j)W_K
+> \begin{aligned}
+> q_i &= (x_i+p_i)W_Q \\
+> k_j &= (x_j+p_j)W_K
+> \end{aligned}
 > $$
 > 两个位置之间的 Attention 分数为：
 > $$
@@ -308,13 +310,12 @@ $$
 > $$
 > 将其展开后得到：
 > $$
-> (x_iW_Q)(x_jW_K)^\top
-> \\
-> (x_iW_Q)(p_jW_K)^\top
-> \\
-> (p_iW_Q)(x_jW_K)^\top
-> \\
-> (p_iW_Q)(p_jW_K)^\top
+> \begin{aligned}
+> &(x_iW_Q)(x_jW_K)^\top \\
+> &(x_iW_Q)(p_jW_K)^\top \\
+> &(p_iW_Q)(x_jW_K)^\top \\
+> &(p_iW_Q)(p_jW_K)^\top
+> \end{aligned}
 > $$
 > 它们分别可以理解为：
 >
@@ -367,11 +368,11 @@ $$
 >
 > 在 Cross-Attention 中：
 > $$
-> Q_{\text{cross}}= Z_{\text{dec}}W_Q^{\text{cross}}
-> \\
-> K_{\text{cross}}= H_{\text{enc}}W_K^{\text{cross}}
-> \\
-> V_{\text{cross}}= H_{\text{enc}}W_V^{\text{cross}}
+> \begin{aligned}
+> Q_{\text{cross}} &= Z_{\text{dec}}W_Q^{\text{cross}} \\
+> K_{\text{cross}} &= H_{\text{enc}}W_K^{\text{cross}} \\
+> V_{\text{cross}} &= H_{\text{enc}}W_V^{\text{cross}}
+> \end{aligned}
 > $$
 > 这里：
 >
@@ -477,7 +478,7 @@ $$
 
 在足够大的数据集上对模型训练足够长的时长后，我们希望生成的概率分布看起来会像这样：
 
-![希望经过训练后，模型能够输出我们期望的正确翻译。当然，这并不能真正表明该短语是否包含在训练数据集中（参见：[ 交叉验证 ](https://www.youtube.com/watch?v=TIgfjmp-4BA)）。请注意，即使某个位置不太可能是该时间步的输出，它也会获得一定的概率——这是 softmax 函数的一个非常有用的特性，有助于训练过程](https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/output_trained_model_probability_distributions.png)
+![希望经过训练后，模型能够输出我们期望的正确翻译。当然，这并不能真正表明该短语是否包含在训练数据集中（参见：https://www.youtube.com/watch?v = TIgfjmp-4BA。请注意，即使某个位置不太可能是该时间步的输出，它也会获得一定的概率——这是 softmax 函数的一个非常有用的特性，有助于训练过程](https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/output_trained_model_probability_distributions.png)
 
 现在，因为模型是一次生成一个输出，我们可以假设模型是从该概率分布中选择概率最高的单词，并丢弃其余的单词。这是一种可行的方法（被称为 **贪婪解码 / greedy decoding**）。
 
@@ -546,13 +547,10 @@ $$
 
 对于每个 Decoder Layer，可以预先计算 Cross-Attention 的 KV 并存到 cross-attention KV cache 中：
 $$
-K_{\text{cross}}^{(l)}
-=
-H_{\text{enc}}W_{K,\text{cross}}^{(l)}
-\\
-V_{\text{cross}}^{(l)}
-=
-H_{\text{enc}}W_{V,\text{cross}}^{(l)}
+\begin{aligned}
+K_{\text{cross}}^{(l)} &= H_{\text{enc}}W_{K,\text{cross}}^{(l)} \\
+V_{\text{cross}}^{(l)} &= H_{\text{enc}}W_{V,\text{cross}}^{(l)}
+\end{aligned}
 $$
 它们在整个生成过程中保持不变。
 
@@ -614,23 +612,17 @@ q_I, k_I, v_I
 $$
 旧缓存是：
 $$
-K_{\text{cache}}
-=
-[k_{\text{BOS}}]
-\\
-V_{\text{cache}}
-=
-[v_{\text{BOS}}]
+\begin{aligned}
+K_{\text{cache}} &= [k_{\text{BOS}}] \\
+V_{\text{cache}} &= [v_{\text{BOS}}]
+\end{aligned}
 $$
 追加新 K/V：
 $$
-K_{\text{cache}}
-\leftarrow
-[k_{\text{BOS}}, k_I]
-\\
-V_{\text{cache}}
-\leftarrow
-[v_{\text{BOS}}, v_I]
+\begin{aligned}
+K_{\text{cache}} &\leftarrow [k_{\text{BOS}}, k_I] \\
+V_{\text{cache}} &\leftarrow [v_{\text{BOS}}, v_I]
+\end{aligned}
 $$
 当前 Q 查询历史全部 K，计算得到下一个 cross-attention Q：
 $$
