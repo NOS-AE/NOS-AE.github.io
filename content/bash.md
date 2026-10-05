@@ -139,7 +139,38 @@ grep -v "pattern" file.txt
 grep -E "pattern1|pattern2" file.txt
 ```
 
+### rg 搜索
+
+``` bash
+# 在当前目录及所有子目录下快速查找关键字（自动忽略 `.gitignore` 中的文件和二进制文件）
+rg "function_name"
+
+# 精准匹配单词
+rg -w "user"
+
+# 忽略大小写搜索
+rg -i "error_code"
+
+# 按文件后缀/类型限定
+rg "import numpy" -t py
+
+# 排除特定文件类型
+rg "TODO" -T md
+
+# 查看前后上下文
+rg -C 3 "def process_data"
+
+# 只列出匹配的文件名
+rg -l "deprecated_api"
+
+# 使用正则表达式匹配（如查找 IP 地址或格式化的日志）
+rg "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+```
+
+
+
 ### sed 文本替换
+
 ```bash
 # 替换第一个匹配
 sed 's/old/new/' file.txt
