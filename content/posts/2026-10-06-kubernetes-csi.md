@@ -136,6 +136,8 @@ CSI 驱动通常按职责部署为两部分。**Controller 服务** 面向整个
 
 继续使用上面的 StorageClass、PVC 和 Pod。它们描述了期望状态，但云盘尚需经过「创建」「接到节点」「挂载给 Pod」三个动作。这里说的节点是运行 Pod 的 ECS 实例；其他 CSI 驱动可能连接的是别的存储系统。
 
+![阿里云 ESSD 经 CSI 创建、连接到 ECS 并挂载到容器的组件协作流程](https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/csi-volume-workflow.svg)
+
 ### 第一步：创建 ESSD
 
 用户提交 PVC 和引用它的 Pod。调度器为 Pod 选择合适节点；`external-provisioner` 观察到待供盘的 PVC，向阿里云 CSI 的 Controller 服务调用 `CreateVolume`。驱动调用阿里云 API 创建云盘，并返回云盘 ID。随后 `external-provisioner` 创建 PV，PVC 与 PV 绑定。

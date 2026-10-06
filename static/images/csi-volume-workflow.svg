@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 900" role="img" aria-labelledby="csi-volume-workflow-title csi-volume-workflow-desc">
+<title id="csi-volume-workflow-title">云硬盘如何通过 CSI 挂载到容器</title>
+<desc id="csi-volume-workflow-desc">同一块 ESSD 依次经过创建、连接到 ECS 和节点挂载三个阶段，分别由供盘 sidecar、接盘 sidecar 和 kubelet 调用 CSI 控制器或节点驱动。</desc>
+<defs><style>@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&amp;display=swap');</style>
+  <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#6c6c6c"/></marker>
+  <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1e66f5"/></marker>
+  <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1e66f5"/></marker>
+  <style>
+    text {font-family:Nunito,"PingFang SC","Microsoft YaHei",sans-serif;fill:#1e1e1e}
+    .title {font-size:28px;font-weight:700}
+    .stage {font-size:20px;font-weight:700}
+    .name {font-size:20px;font-weight:600}
+    .detail {font-size:16px;fill:#6c6c6c}
+    .code {font-family:Menlo,Consolas,monospace;font-size:15px;fill:#1e66f5}
+    .edge {font-size:14px;fill:#6c6c6c}
+    .note {font-size:15px;fill:#6c6c6c}
+  </style>
+</defs>
+<rect width="960" height="900" fill="#ffffff"/>
+<text x="40" y="60" class="title">云硬盘如何通过 CSI 挂载到容器</text>
+<text x="40" y="92" class="detail">以阿里云 ESSD 为例 · 三个阶段，三条调用链</text>
+
+<line x1="40" y1="120" x2="920" y2="120" stroke="#eeeeee"/>
+<text x="40" y="148" class="stage" text-anchor="start">01  创建云盘</text>
+<text x="40" y="178" class="detail" text-anchor="start">PVC 提出存储申请；调度器选定合适的节点与可用区</text>
+<path d="M280 236 H358" fill="none" stroke="#1e66f5" stroke-width="1.5" marker-end="url(#arrow-link)"/>
+<rect x="286.0" y="202" width="68" height="24" fill="#ffffff"/>
+<text x="320.0" y="219" class="edge" text-anchor="middle">CSI RPC</text>
+<path d="M600 236 H678" fill="none" stroke="#6c6c6c" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="606.0" y="202" width="68" height="24" fill="#ffffff"/>
+<text x="640.0" y="219" class="edge" text-anchor="middle">云 API</text>
+<rect x="40" y="192" width="240" height="88" rx="6" fill="#ffffff" stroke="#d6d6d6" stroke-width="1.2"/>
+<text x="160" y="222" class="name" text-anchor="middle">external-provisioner</text>
+<text x="160" y="248" class="detail" text-anchor="middle">观察 PVC</text>
+<rect x="360" y="192" width="240" height="88" rx="6" fill="#f5f8ff" stroke="#adc7fc" stroke-width="1.2"/>
+<text x="480" y="222" class="name" text-anchor="middle">CSI 控制器驱动</text>
+<text x="480" y="248" class="code" text-anchor="middle">CreateVolume</text>
+<rect x="680" y="192" width="240" height="88" rx="6" fill="#ffffff" stroke="#d6d6d6" stroke-width="1.2"/>
+<text x="800" y="222" class="name" text-anchor="middle">阿里云控制面</text>
+<text x="800" y="248" class="code" text-anchor="middle">CreateDisk</text>
+<text x="40" y="300" class="note" text-anchor="start">结果：ESSD 创建完成；external-provisioner 创建 PV，记录云盘 ID。</text>
+<line x1="40" y1="340" x2="920" y2="340" stroke="#eeeeee"/>
+<text x="40" y="368" class="stage" text-anchor="start">02  接到 ECS</text>
+<text x="40" y="398" class="detail" text-anchor="start">Pod 已调度 → attach/detach controller 创建 VolumeAttachment</text>
+<path d="M280 456 H358" fill="none" stroke="#1e66f5" stroke-width="1.5" marker-end="url(#arrow-link)"/>
+<rect x="286.0" y="422" width="68" height="24" fill="#ffffff"/>
+<text x="320.0" y="439" class="edge" text-anchor="middle">CSI RPC</text>
+<path d="M600 456 H678" fill="none" stroke="#6c6c6c" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="606.0" y="422" width="68" height="24" fill="#ffffff"/>
+<text x="640.0" y="439" class="edge" text-anchor="middle">云 API</text>
+<rect x="40" y="412" width="240" height="88" rx="6" fill="#ffffff" stroke="#d6d6d6" stroke-width="1.2"/>
+<text x="160" y="442" class="name" text-anchor="middle">external-attacher</text>
+<text x="160" y="468" class="detail" text-anchor="middle">观察 VolumeAttachment</text>
+<rect x="360" y="412" width="240" height="88" rx="6" fill="#f5f8ff" stroke="#adc7fc" stroke-width="1.2"/>
+<text x="480" y="442" class="name" text-anchor="middle">CSI 控制器驱动</text>
+<text x="480" y="468" class="code" text-anchor="middle">ControllerPublishVolume</text>
+<rect x="680" y="412" width="240" height="88" rx="6" fill="#ffffff" stroke="#d6d6d6" stroke-width="1.2"/>
+<text x="800" y="442" class="name" text-anchor="middle">阿里云控制面</text>
+<text x="800" y="468" class="code" text-anchor="middle">AttachDisk</text>
+<text x="40" y="520" class="note" text-anchor="start">结果：ESSD 连接到 ECS；external-attacher 回写 attached=true。</text>
+<line x1="40" y1="560" x2="920" y2="560" stroke="#eeeeee"/>
+<text x="40" y="588" class="stage" text-anchor="start">03  挂载给容器</text>
+<text x="40" y="618" class="detail" text-anchor="start">kubelet 接收已调度的 Pod，读取 PVC / PV，并等待接盘完成</text>
+<path d="M280 686 H358" fill="none" stroke="#1e66f5" stroke-width="1.5" marker-end="url(#arrow-link)"/>
+<rect x="286.0" y="652" width="68" height="24" fill="#ffffff"/>
+<text x="320.0" y="669" class="edge" text-anchor="middle">CSI RPC</text>
+<path d="M600 686 H678" fill="none" stroke="#6c6c6c" stroke-width="1.5" stroke-dasharray="5 5" marker-end="url(#arrow)"/>
+<rect x="606.0" y="652" width="68" height="24" fill="#ffffff"/>
+<text x="640.0" y="669" class="edge" text-anchor="middle">路径就绪</text>
+<rect x="40" y="632" width="240" height="108" rx="6" fill="#ffffff" stroke="#d6d6d6" stroke-width="1.2"/>
+<text x="160" y="662" class="name" text-anchor="middle">kubelet</text>
+<text x="160" y="688" class="detail" text-anchor="middle">运行在目标 ECS 上</text>
+<rect x="360" y="632" width="240" height="108" rx="6" fill="#f5f8ff" stroke="#adc7fc" stroke-width="1.2"/>
+<text x="480" y="662" class="name" text-anchor="middle">CSI 节点驱动</text>
+<text x="480" y="688" class="code" text-anchor="middle">NodeStageVolume*</text>
+<text x="480" y="710" class="code" text-anchor="middle">NodePublishVolume</text>
+<rect x="680" y="632" width="240" height="108" rx="6" fill="#ffffff" stroke="#d6d6d6" stroke-width="1.2"/>
+<text x="800" y="662" class="name" text-anchor="middle">Pod 容器</text>
+<text x="800" y="688" class="detail" text-anchor="middle">挂载目录 /data</text>
+<text x="40" y="760" class="note" text-anchor="start">NodePublish 完成后，kubelet 通过容器运行时将宿主机目标路径挂入容器。</text>
+<line x1="40" y1="792" x2="920" y2="792" stroke="#eeeeee"/>
+<text x="40" y="822" class="note" text-anchor="start">实线：调用     虚线：挂载结果     * NodeStageVolume 是可选阶段</text>
+<text x="40" y="850" class="note" text-anchor="start">按阶段展开；同名驱动表示同一逻辑服务。省略响应、重试和 PV/PVC 绑定细节。</text>
+<text x="40" y="878" class="note" text-anchor="start">应用读写走文件系统与块设备；数据不经过 CSI RPC。</text>
+</svg>
