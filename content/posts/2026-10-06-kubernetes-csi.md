@@ -1,7 +1,7 @@
 ---
-title: "Kubernetes 存储入门：从 PV、PVC 到 CSI 与云硬盘"
+title: Kubernetes 存储入门：从 PV、PVC 到 CSI 与云硬盘
 date: 2026-10-06T00:00:00+08:00
-description: "用 YAML 认识 Kubernetes 持久化存储，以 ESSD 和 CSI Hostpath 解释组件协作、部署方式与数据存放位置。"
+description: 用 YAML 认识 Kubernetes 持久化存储，以 ESSD 和 CSI Hostpath 解释组件协作、部署方式与数据存放位置。
 tags: [k8s, storage, csi]
 categories: [k8s]
 draft: false
@@ -23,7 +23,7 @@ volumes:
       path: /data
 ```
 
-这样看起来就带来一系列耦合问题：
+这样就会导致：
 
 - 应用开发者需要知道底层存储的具体细节（是 NFS 还是 Ceph？服务器地址是多少？）
 - 存储变更意味着要改 Pod 定义，应用和基础设施强耦合
@@ -165,7 +165,7 @@ CSI 规范定义了三组 gRPC 服务：
 
 存储厂商只需要实现这三组接口，发布一个 driver 二进制，不需要碰 Kubernetes 一行代码。
 
-### 部署形态
+### CSI 部署形态
 
 CSI 驱动在 Kubernetes 里不是单独一个组件，而是被拆成了 **Controller 侧** 和 **Node 侧** 两部分，分别部署。
 
@@ -180,6 +180,14 @@ Node 组件以 DaemonSet 部署，每个节点跑一个 Pod：
 
 - [node-driver-registrar](https://github.com/kubernetes-csi/node-driver-registrar)（sidecar）：把 CSI driver 注册到 kubelet
 - **CSI driver**：接收 kubelet 的调用，执行 `NodePublishVolume`（挂载到容器路径）和 `NodeUnpublishVolume`（卸载）
+
+好消息是，上面的 external-provisioner、external-attacher 以及 node-driver-registrar 这些 sidecar 都无需厂商自己开发，这些是 k8s 官方维护的组件，厂商直接将这些 sidecar 拿来拼到自己驱动的 deployment 里就行了。
+
+以 external-provisioner 为例，它监听到一个 PVC 创建事件，读一下 PVC 的 StorageClass、容量需求，然后通过 gRPC 调用 CSI Driver 的 `CreateVolume`。至于 Driver 背后是 AWS EBS 还是 Ceph，provisioner 根本不关心——它只认 `CreateVolume` 这个标准 RPC 的入参和返回值。
+
+node-driver-registrar 更简单：它唯一的任务是把 CSI Driver 的 Unix Socket 路径注册给 kubelet，让 kubelet 知道“这个节点上有个 CSI Driver 可以调用”。这纯粹是机制性的工作，和存储后端没有任何关系。
+
+从这个角度来看，CSI 的价值是将 K8S 的资源对象（PV、PVC 等）转化成一系列实际的 "动作"（即 CreateVolume 等接口调用），第三方只需要实现那些接口，就能轻松地将自己的存储能力给 K8S 中的应用程序使用，同时应用程序也无需感知这些存储的具体实现。
 
 整个调用链是这样的：
 
