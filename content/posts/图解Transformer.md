@@ -332,6 +332,33 @@ $$
 
 ![img](https://cdn.jsdelivr.net/gh/NOS-AE/assets@main/img/attention-is-all-you-need-positional-encoding.png)
 
+### RoPE 位置编码
+
+参考：https://hub.baai.ac.cn/view/29979
+
+RoPE 只对 Query 和 Key 向量施加旋转操作，Value（值）向量保持不变。这是因为位置信息需要影响的是“**哪些位置应该互相关注**”（由 Q 和 K 的内积决定），而不是“关注后提取什么信息”（由 V 决定）。
+
+在 Transformer 中，Q 和 K 通常是高维向量（例如 64 维或 128 维）。RoPE 的做法是：
+
+1. **分组**：将高维向量两两分组，看作 $d/2$ 个二维子空间。
+2. **分配频率**：为每一对维度分配一个不同的旋转频率 $θ_i$。通常使用公式 $θ_i=10000^{−2i/d}$，这与正弦位置编码的频率公式相同，但应用方式截然不同（RoPE 是乘法旋转，而非加法）。
+3. **独立旋转**：对每一对维度，根据该 token 的绝对位置 m（或 n），应用一个角度为 $mθ_i$ 的二维旋转矩阵。
+
+数学效果：
+
+这是 RoPE 最精妙的地方。假设位置 m 的 Query 向量 $q_m$ 和位置 n 的 Key 向量 $k_n$ 都经过了旋转。
+
+- 旋转后：$q'_m=R(m\theta)q_m, k'_n=R(n\theta)k_n$（这里简写为统一频率，实际是多频率组合）。
+- 计算注意力分数（内积）时：${q'}_m^Tk'_n=(R(m\theta)q_m)^T(R(n\theta)k_n)={q}_m^TR(m\theta)^TR(n\theta)k_n$。
+- 利用旋转矩阵的性质 $R(\alpha)^TR(\beta)=R(\beta-\alpha)$，最终结果变为：${q}_m^TR((n-m)\theta)k_n$。
+
+**结果就是**：注意力分数只依赖于 $(n-m)$，即两个 token 的 **相对距离**，而与它们各自的绝对位置 m *m* 和 n *n* 无关。这完美满足了论文想要“用绝对位置编码实现相对位置编码”的目标。
+
+虽然数学上是乘以旋转矩阵，但实际代码并不会真的去构建一个大矩阵。因为旋转矩阵是稀疏的（只有对角线附近有值），计算可以简化为对向量元素的 **逐元素乘法** 和 **加减法**。
+例如，在 Hugging Face 的实现中，经常看到 `rotate_half` 操作：将向量分成两半，对其中一半取负并交换位置，再与 `cos` 和 `sin` 缓存相乘，即可高效完成旋转。
+
+**总结一下**：RoPE 把复数/旋转矩阵的数学工具，变成了对 Q、K 向量的“物理旋转”。这个简单的操作让模型在计算内积时，自动获得了对相对位置的感知能力，并且没有引入额外的可训练参数。
+
 ## 残差
 
 在继续深入之前，我们需要提一下编码器架构中的一个细节：每个编码器内部的每个子层（自注意力层、前馈神经网络层）周围都包含一个 **残差连接（residual connection）**，紧接着还会进行一步层归一化（layer-normalization）操作。
@@ -554,15 +581,15 @@ V_{\text{cross}}^{(l)} &= H_{\text{enc}}W_{V,\text{cross}}^{(l)}
 $$
 它们在整个生成过程中保持不变。
 
-然后将第一个词 <BOS> 经过 embedding 和位置编码得到 X，将其输入到 Decoder 的 self-attention，计算得到 Decoder 第一层 self-attention 的 QKV：
+然后将第一个词 <BOS> 经过 embedding 和位置编码得到 X，计算得到 Decoder 第一层 self-attention 的 QKV：
 $$
 q_{\text{BOS}}, k_{\text{BOS}}, v_{\text{BOS}}
 $$
-将 KV 存到该层的 self-attention KV cache 中，另外，用这 QKV 计算得到第一层 cross-attention 的 Q：
+用这 QKV 进行 Attention 公式计算，得到的结果乘上 cross-attention 的 Wq 作为 cross-attention 的 Q（另外，还要将 KV 存到该层的 self-attention KV cache 中，用于后续预测，避免重复计算）：
 $$
-q_{cross,0}=\operatorname{Attention}(q_{\text{BOS}}, k_{\text{BOS}}, v_{\text{BOS}})
+q_{cross,0}=\operatorname{Attention}(q_{\text{BOS}}, k_{\text{BOS}}, v_{\text{BOS}})W_{Q, cross}^{(l)}
 $$
-并将其与 cross-attention KV 计算得到：
+然后 cross-attention QKV 计算得到：
 $$
 \operatorname{Attention}
 (
@@ -659,7 +686,7 @@ I love cats
 
 最容易困惑的地方就是，之前 Encoder 不是负责理解输入吗？那没有 Encoder 的话，GPT 怎么理解问题？答案是 Decoder Only 把 Encoder 的功能融合进了 Decoder 的 Self Attention。
 
-你还可能会问，GPT 也能翻译，那为什么它不用 Encoder？需要注意的是，你在输入 GPT 的 Prompt 中，你肯定会说让它把某一段文本翻译一下，所以核心在于，这是你让它翻译的。而论文中的 Transformer 是专门用来做翻译的，你不需要输入类似“翻译下面这段文本”等 prompt。
+你还可能会问，GPT 也能翻译，那为什么它不用 Encoder？需要注意的是，你在输入 GPT 的 Prompt 中，你肯定会说让它把某一段文本翻译一下，所以核心在于，这是你让它翻译的。而论文中的 Transformer 是专门用来做翻译的，你不需要输入类似“翻译下面这段文本”等 prompt。那么这样看起来 Decoder Only 模型可以做到的事情比论文中的 Transformer 更具通用性。
 
 由于没有了 Encoder，所以 Decoder 里面也去掉了 Cross Attention。下面就来看一看，Decoder Only 架构是如何预测下一个词的。
 
